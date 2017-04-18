@@ -1,2 +1,3 @@
 # tiger
-enhanced tiger compiler
+The compiler in the tiger book written with C++11.
+
