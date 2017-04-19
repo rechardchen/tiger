@@ -5,83 +5,83 @@ prog : exp | decs;
 
 exp
 	// Literals
-	: 'nil'
-	| INT
-	| STRING
+	: 'nil'												#NilExp
+	| INT												#IntExp
+	| STRING											#StringExp
 	// Array and record creations
-	| typeid '[' exp ']' 'of' exp
-	| typeid '{' (ID '=' exp (',' ID '=' exp)* )? '}'
+	| type_id '[' exp ']' 'of' exp 						#ArrayExp
+	| type_id '{' (ID '=' exp (',' ID '=' exp)* )? '}'	#RecordExp
 	//Object creation
-	| 'new' typeid
+	| 'new' type_id										#NewExp
 	//Lvalue
-	| lvalue
+	| lvalue 											#LvalueExp
 	// Function call
-	| ID '(' (exp (',' exp)*)? ')'
+	| ID '(' (exp (',' exp)*)? ')' 						#FuncCallExp
 	// Method call
-	| lvalue '.' ID '(' (exp (',' exp)*)? ')'
+	| lvalue '.' ID '(' (exp (',' exp)*)? ')' 			#MethodCallExp
 	//Operations
-	| '-' exp
-	| exp ('*'|'/') exp
-	| exp ('+'|'-') exp
-	| exp ('='|'<>'|'>='|'<='|'>'|'<') exp
-	| exp ('&'|'|') exp
-	| '(' exps ')'
+	| '-' exp 											#NegExp
+	| exp ('*'|'/') exp 								#MulDivExp
+	| exp ('+'|'-') exp 								#AddSubExp
+	| exp ('='|'<>'|'>='|'<='|'>'|'<') exp 				#RelOpExp
+	| exp ('&'|'|') exp 								#LogicExp
+	| '(' exps ')' 										#ExplistExp
 	//Assignment
-	| lvalue ':=' exp
+	| lvalue ':=' exp 									#AssignExp
 	//Control structures
-	| 'if' exp 'then' exp ('else' exp)?
-	| 'while' exp 'do' exp
-	| 'for' ID ':=' exp 'to' exp 'do' exp
-	| 'break'
-	| 'let' decs 'in' exps 'end'
+	| 'if' exp 'then' exp ('else' exp)? 				#IfExp
+	| 'while' exp 'do' exp 								#WhileExp
+	| 'for' ID ':=' exp 'to' exp 'do' exp 				#ForExp
+	| 'break' 											#BreakExp
+	| 'let' decs 'in' exps 'end' 						#LetExp
 	;
 
 lvalue
-	: ID
-	| lvalue '.' ID
-	| lvalue '[' exp ']'
+	: ID 												#SimpleVar
+	| lvalue '.' ID 									#FieldVar
+	| lvalue '[' exp ']' 								#SubScriptVar
 	;
 
-exps: (exp (';' exp)*)? ;
+exps: (exp (';' exp)*)? #ExprList; 								
 
-decs: dec*;
+decs: dec* #DecList; 											
 
 dec
 	//Type declaration
-	: 'type' ID '=' ty
+	: 'type' ID '=' ty 									#TypeDec
 	//Class definition (alternative form)
-	| 'class' ID ('extends' typeid)? '{' classfields '}'
+	| 'class' ID ('extends' type_id)? '{' classfields '}' #ClassDec
 	//Variable declaration
-	| vardec
+	| vardec   	#DecVarDec									
 	//Function declaration
-	| 'function' ID '(' tyfields ')' (':' typeid)? '=' exp
+	| 'function' ID '(' tyfields ')' (':' type_id)? '=' exp #FunDec
 	//Import a set of declarations, add from x import y (TODO)
-	| 'import' STRING
+	| 'import' STRING  										#ImportDec
 	;
 
 ty
 	//Type alias
-	: typeid
+	: type_id  											#NameTy
 	//Record type definition
-	| '{' tyfields '}'
+	| '{' tyfields '}' 									#RecordTy
 	//Array type definition
-	| 'array' 'of' typeid
+	| 'array' 'of' type_id 								#ArrayTy
 	//Class type definition
-	| 'class' ('extends' typeid)? '{' classfields '}'
+	| 'class' ('extends' type_id)? '{' classfields '}'  #ClassTy
 	;
 
-tyfields: (ID ':' typeid (',' ID ':' typeid)*)? ;
+tyfields: (ID ':' type_id (',' ID ':' type_id)*)? ;
 
 classfields
 	//Attribute declaration
-	: vardec
+	: vardec      										#ClassVarDec
 	//method declaration
-	| 'method' ID '(' tyfields ')' (':' typeid)? '=' exp
+	| 'method' ID '(' tyfields ')' (':' type_id)? '=' exp #MethodDec
 	;
 
-vardec: 'var' ID (':' typeid)? ':=' exp;
+vardec: 'var' ID (':' type_id)? ':=' exp #VarDec; 				
 
-typeid: ID;
+type_id: ID;
 
 
 

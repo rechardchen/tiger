@@ -1,0 +1,9 @@
+*.opendb
+tiger/tiger.VC.db
+*.pdb
+tiger/Debug/vc140.idb
+*.obj
+tiger/.vs/tiger/v14/.suo
+*.log
+tiger/Debug/tiger.tlog/CL.command.1.tlog
+*.tlog
