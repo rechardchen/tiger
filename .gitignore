@@ -7,3 +7,4 @@ tiger/.vs/tiger/v14/.suo
 *.log
 tiger/Debug/tiger.tlog/CL.command.1.tlog
 *.tlog
+*.exe

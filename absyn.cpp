@@ -289,4 +289,8 @@ namespace tiger
 		return visitor.visit(tree);
 	}
 
+	class ASTDumper
+	{
+
+	};
 }
