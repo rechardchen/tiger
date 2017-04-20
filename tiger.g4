@@ -21,10 +21,10 @@ exp
 	| lvalue '.' ID '(' (exp (',' exp)*)? ')' 			#MethodCallExp
 	//Operations
 	| '-' exp 											#NegExp
-	| exp ('*'|'/') exp 								#MulDivExp
-	| exp ('+'|'-') exp 								#AddSubExp
-	| exp ('='|'<>'|'>='|'<='|'>'|'<') exp 				#RelOpExp
-	| exp ('&'|'|') exp 								#LogicExp
+	| exp op=('*'|'/') exp 								#MulDivExp
+	| exp op=('+'|'-') exp 								#AddSubExp
+	| exp op=('='|'<>'|'>='|'<='|'>'|'<') exp 				#RelOpExp
+	| exp op=('&'|'|') exp 								#LogicExp
 	| '(' exps ')' 										#ExplistExp
 	//Assignment
 	| lvalue ':=' exp 									#AssignExp
@@ -50,7 +50,7 @@ dec
 	//Type declaration
 	: 'type' ID '=' ty 									#TypeDec
 	//Class definition (alternative form)
-	| 'class' ID ('extends' type_id)? '{' classfields '}' #ClassDec
+	| 'class' ID ('extends' type_id)? '{' classfields* '}' #ClassDec
 	//Variable declaration
 	| vardec   	#DecVarDec									
 	//Function declaration
@@ -67,10 +67,10 @@ ty
 	//Array type definition
 	| 'array' 'of' type_id 								#ArrayTy
 	//Class type definition
-	| 'class' ('extends' type_id)? '{' classfields '}'  #ClassTy
+	| 'class' ('extends' type_id)? '{' classfields* '}'  #ClassTy
 	;
 
-tyfields: (ID ':' type_id (',' ID ':' type_id)*)? ;
+tyfields: (ID ':' type_id (',' ID ':' type_id)*)? #TyFields; 
 
 classfields
 	//Attribute declaration

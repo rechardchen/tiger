@@ -107,6 +107,7 @@ public:
   public:
     RelOpExpContext(ExpContext *ctx);
 
+    antlr4::Token *op = nullptr;
     std::vector<ExpContext *> exp();
     ExpContext* exp(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -180,6 +181,7 @@ public:
   public:
     MulDivExpContext(ExpContext *ctx);
 
+    antlr4::Token *op = nullptr;
     std::vector<ExpContext *> exp();
     ExpContext* exp(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -207,6 +209,7 @@ public:
   public:
     LogicExpContext(ExpContext *ctx);
 
+    antlr4::Token *op = nullptr;
     std::vector<ExpContext *> exp();
     ExpContext* exp(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -232,6 +235,7 @@ public:
   public:
     AddSubExpContext(ExpContext *ctx);
 
+    antlr4::Token *op = nullptr;
     std::vector<ExpContext *> exp();
     ExpContext* exp(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -391,8 +395,9 @@ public:
     ClassDecContext(DecContext *ctx);
 
     antlr4::tree::TerminalNode *ID();
-    ClassfieldsContext *classfields();
     Type_idContext *type_id();
+    std::vector<ClassfieldsContext *> classfields();
+    ClassfieldsContext* classfields(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
@@ -448,8 +453,9 @@ public:
   public:
     ClassTyContext(TyContext *ctx);
 
-    ClassfieldsContext *classfields();
     Type_idContext *type_id();
+    std::vector<ClassfieldsContext *> classfields();
+    ClassfieldsContext* classfields(size_t i);
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
   };
 
@@ -466,14 +472,25 @@ public:
   class  TyfieldsContext : public antlr4::ParserRuleContext {
   public:
     TyfieldsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+   
+    TyfieldsContext() : antlr4::ParserRuleContext() { }
+    void copyFrom(TyfieldsContext *context);
+    using antlr4::ParserRuleContext::copyFrom;
+
     virtual size_t getRuleIndex() const override;
+
+   
+  };
+
+  class  TyFieldsContext : public TyfieldsContext {
+  public:
+    TyFieldsContext(TyfieldsContext *ctx);
+
     std::vector<antlr4::tree::TerminalNode *> ID();
     antlr4::tree::TerminalNode* ID(size_t i);
     std::vector<Type_idContext *> type_id();
     Type_idContext* type_id(size_t i);
-
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
-   
   };
 
   TyfieldsContext* tyfields();

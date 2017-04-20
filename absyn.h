@@ -65,9 +65,10 @@ namespace tiger
 	{
 		enum {
 			OP_MUL, OP_DIV, OP_ADD, OP_SUB,
-			OP_EQ, OP_NE, OP_GE, OP_LE, OP_GT, OP_LT
+			OP_EQ, OP_NE, OP_GE, OP_LE, OP_GT, OP_LT,
+			OP_AND, OP_OR
 		} op;
-		ASTNode exp;
+		ASTNode lhs, rhs;
 	};
 	struct AssignExp : public BaseASTNode
 	{
@@ -137,12 +138,14 @@ namespace tiger
 		std::string name, type;
 		ASTNode init;
 	};
-	typedef std::list<std::pair<std::string, std::string>> TyFields;
+	struct TyFields : public BaseASTNode
+	{
+		std::list<std::pair<std::string, std::string> > fields;
+	};
 	struct FuncDec : public BaseASTNode
 	{
 		std::string name, rtype;
-		TyFields params;
-		ASTNode body;
+		ASTNode body, params;
 	};
 	struct ImportDec : public BaseASTNode
 	{
@@ -154,7 +157,7 @@ namespace tiger
 	};
 	struct RecordTy : public BaseASTNode
 	{
-		TyFields fields;
+		ASTNode tyfields;
 	};
 	struct ArrayTy : public BaseASTNode
 	{
@@ -168,7 +171,8 @@ namespace tiger
 	struct MethodDec : public BaseASTNode
 	{
 		std::string name, rtype;
-		TyFields params;
-		ASTNode body;
+		ASTNode body, params;
 	};
+
+	ASTNode parseAST(const std::string& source);
 }

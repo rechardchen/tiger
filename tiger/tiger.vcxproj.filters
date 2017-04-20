@@ -19,6 +19,7 @@
       <Filter>grammar</Filter>
     </ClCompile>
     <ClCompile Include="..\absyn.cpp" />
+    <ClCompile Include="..\tc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\grammar\tigerBaseVisitor.h">

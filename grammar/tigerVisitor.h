@@ -91,7 +91,7 @@ public:
 
     virtual antlrcpp::Any visitClassTy(tigerParser::ClassTyContext *context) = 0;
 
-    virtual antlrcpp::Any visitTyfields(tigerParser::TyfieldsContext *context) = 0;
+    virtual antlrcpp::Any visitTyFields(tigerParser::TyFieldsContext *context) = 0;
 
     virtual antlrcpp::Any visitClassVarDec(tigerParser::ClassVarDecContext *context) = 0;
 

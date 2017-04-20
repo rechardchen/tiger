@@ -159,7 +159,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual antlrcpp::Any visitTyfields(tigerParser::TyfieldsContext *ctx) override {
+  virtual antlrcpp::Any visitTyFields(tigerParser::TyFieldsContext *ctx) override {
     return visitChildren(ctx);
   }
 
