@@ -44,6 +44,8 @@ namespace tiger
 		DISPATCH(A_ArrayTy, ArrayTy, visitArrayTy);
 		DISPATCH(A_ClassTy, ClassTy, visitClassTy);
 		DISPATCH(A_MethodDec, MethodDec, visitMethodDec);
+
+#undef DISPATCH
 		}
 		return;
 	}
