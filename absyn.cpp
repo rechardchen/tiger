@@ -6,6 +6,47 @@
 
 namespace tiger
 {
+	void ASTVisitor::visit(ASTNode node) {
+		switch (node->type)
+		{
+#define DISPATCH(E, T, V) \
+		case E: return V((T*)node.get());
+
+		DISPATCH(A_Nil, NilExp, visitNilExp);
+		DISPATCH(A_String, StringExp, visitStringExp);
+		DISPATCH(A_Int, IntExp, visitIntExp);
+		DISPATCH(A_Array, ArrayExp, visitArrayExp);
+		DISPATCH(A_Record, RecordExp, visitRecordExp);
+		DISPATCH(A_New, NewExp, visitNewExp);
+		DISPATCH(A_Call, CallExp, visitCallExp);
+		DISPATCH(A_MethodCall, MethodCallExp, visitMethodCallExp);
+		DISPATCH(A_UnaryOp, UnaryOpExp, visitUnaryOpExp);
+		DISPATCH(A_BinOp, BinOpExp, visitBinaryOpExp);
+		DISPATCH(A_Assign, AssignExp, visitAssignExp);
+		DISPATCH(A_If, IfExp, visitIfExp);
+		DISPATCH(A_While, WhileExp, visitWhileExp);
+		DISPATCH(A_For, ForExp, visitForExp);
+		DISPATCH(A_Break, BreakExp, visitBreakExp);
+		DISPATCH(A_Let, LetExp, visitLetExp);
+		DISPATCH(A_SimpleVar, SimpleVar, visitSimpleVar);
+		DISPATCH(A_FieldVar, FieldVar, visitFieldVar);
+		DISPATCH(A_SubscriptVar, SubscriptVar, visitSubscriptVar);
+		DISPATCH(A_ExpList, ExpList, visitExpList);
+		DISPATCH(A_DeclareList, DeclareList, visitDeclareList);
+		DISPATCH(A_TypeDec, TypeDec, visitTypeDec);
+		DISPATCH(A_ClassDec, ClassDec, visitClassDec);
+		DISPATCH(A_VarDec, VarDec, visitVarDec);
+		DISPATCH(A_TyFields, TyFields, visitTyFields);
+		DISPATCH(A_FuncDec, FuncDec, visitFuncDec);
+		DISPATCH(A_ImportDec, ImportDec, visitImportDec);
+		DISPATCH(A_NameTy, NameTy, visitNameTyp);
+		DISPATCH(A_RecordTy, RecordTy, visitRecordTy);
+		DISPATCH(A_ArrayTy, ArrayTy, visitArrayTy);
+		DISPATCH(A_ClassTy, ClassTy, visitClassTy);
+		DISPATCH(A_MethodDec, MethodDec, visitMethodDec);
+		}
+		return;
+	}
 	class AbsynVisitor : public tigerBaseVisitor
 	{
 	public:
@@ -247,9 +288,7 @@ namespace tiger
 			auto ids = ctx->ID();
 			auto typeids = ctx->type_id();
 			for (size_t i = 0; i < ids.size(); ++i)
-				tyfields->fields.push_back(std::make_pair(
-					ids[i]->getText(), typeids[i]->getText()
-					));
+				tyfields->fields.push_back({ ids[i]->getText(), typeids[i]->getText() });
 			return ASTNode(tyfields);
 		}
 		virtual antlrcpp::Any visitClassVarDec(tigerParser::ClassVarDecContext *ctx) override {
@@ -289,7 +328,7 @@ namespace tiger
 		return visitor.visit(tree);
 	}
 
-	class ASTDumper
+	class ASTDumper:public ASTVisitor
 	{
 
 	};

@@ -166,10 +166,15 @@ namespace tiger
 		std::string name, type;
 		ASTNode init;
 	};
+	struct TyField {
+		std::string name;
+		std::string type;
+		//bool escape = false;
+	};
 	struct TyFields : public BaseASTNode
 	{
 		TyFields() :BaseASTNode(A_TyFields) {}
-		std::list<std::pair<std::string, std::string> > fields;
+		std::list<TyField> fields;
 	};
 	struct FuncDec : public BaseASTNode
 	{
@@ -216,38 +221,38 @@ namespace tiger
 		virtual void visit(ASTNode) final;
 
 	protected:
-		virtual void visitNilExp(NilExp*);
-		virtual void visitIntExp(IntExp*);
-		virtual void visitStringExp(StringExp*);
-		virtual void visitArrayExp(ArrayExp*);
-		virtual void visitRecordExp(RecordExp*);
-		virtual void visitNewExp(NewExp*);
-		virtual void visitCallExp(CallExp*);
-		virtual void visitMethodCallExp(MethodCallExp*);
-		virtual void visitUnaryOpExp(UnaryOpExp*);
-		virtual void visitBinaryOpExp(BinOpExp*);
-		virtual void visitAssignExp(AssignExp*);
-		virtual void visitIfExp(IfExp*);
-		virtual void visitWhileExp(WhileExp*);
-		virtual void visitForExp(ForExp*);
-		virtual void visitBreakExp(BreakExp*);
-		virtual void visitLetExp(LetExp*);
-		virtual void visitSimpleVar(SimpleVar*);
-		virtual void visitFieldVar(FieldVar*);
-		virtual void visitSubscriptVar(SubscriptVar*);
-		virtual void visitExpList(ExpList*);
-		virtual void visitDeclareList(DeclareList*);
-		virtual void visitTypeDec(TypeDec*);
-		virtual void visitClassDec(ClassDec*);
-		virtual void visitVarDec(VarDec*);
-		virtual void visitTyFields(TyFields*);
-		virtual void visitFuncDec(FuncDec*);
-		virtual void visitImportDec(ImportDec*);
-		virtual void visitNameTyp(NameTy*);
-		virtual void visitRecordTy(RecordTy*);
-		virtual void visitArrayTy(ArrayTy*);
-		virtual void visitClassTy(ClassTy*);
-		virtual void visitMethodDec(MethodDec*);
+		virtual void visitNilExp(NilExp*) {}
+		virtual void visitIntExp(IntExp*) {}
+		virtual void visitStringExp(StringExp*) {}
+		virtual void visitArrayExp(ArrayExp*) {}
+		virtual void visitRecordExp(RecordExp*) {}
+		virtual void visitNewExp(NewExp*) {}
+		virtual void visitCallExp(CallExp*) {}
+		virtual void visitMethodCallExp(MethodCallExp*) {}
+		virtual void visitUnaryOpExp(UnaryOpExp*) {}
+		virtual void visitBinaryOpExp(BinOpExp*) {}
+		virtual void visitAssignExp(AssignExp*) {}
+		virtual void visitIfExp(IfExp*) {}
+		virtual void visitWhileExp(WhileExp*) {}
+		virtual void visitForExp(ForExp*) {}
+		virtual void visitBreakExp(BreakExp*) {}
+		virtual void visitLetExp(LetExp*) {}
+		virtual void visitSimpleVar(SimpleVar*) {}
+		virtual void visitFieldVar(FieldVar*) {}
+		virtual void visitSubscriptVar(SubscriptVar*) {}
+		virtual void visitExpList(ExpList*) {}
+		virtual void visitDeclareList(DeclareList*) {}
+		virtual void visitTypeDec(TypeDec*) {}
+		virtual void visitClassDec(ClassDec*) {}
+		virtual void visitVarDec(VarDec*) {}
+		virtual void visitTyFields(TyFields*) {}
+		virtual void visitFuncDec(FuncDec*) {}
+		virtual void visitImportDec(ImportDec*) {}
+		virtual void visitNameTyp(NameTy*) {}
+		virtual void visitRecordTy(RecordTy*) {}
+		virtual void visitArrayTy(ArrayTy*) {}
+		virtual void visitClassTy(ClassTy*) {}
+		virtual void visitMethodDec(MethodDec*) {}
 	};
 	//AST 
 	ASTNode parseAST(const std::string& source);
