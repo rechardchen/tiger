@@ -45,11 +45,13 @@ namespace tiger
 		DISPATCH(A_TyFields, TyFields, visitTyFields);
 		DISPATCH(A_FuncDec, FuncDec, visitFuncDec);
 		DISPATCH(A_ImportDec, ImportDec, visitImportDec);
-		DISPATCH(A_NameTy, NameTy, visitNameTyp);
+		DISPATCH(A_NameTy, NameTy, visitNameTy);
 		DISPATCH(A_RecordTy, RecordTy, visitRecordTy);
 		DISPATCH(A_ArrayTy, ArrayTy, visitArrayTy);
 		DISPATCH(A_ClassTy, ClassTy, visitClassTy);
 		DISPATCH(A_MethodDec, MethodDec, visitMethodDec);
+		DISPATCH(A_Field, Field, visitField);
+		DISPATCH(A_EField, EField, visitEField);
 
 #undef DISPATCH
 		}
@@ -86,10 +88,10 @@ namespace tiger
 			auto values = ctx->exp();
 			for (size_t i = 0; i < values.size(); ++i)
 			{
-				exp->fields.push_back({
-					ids[i]->getText(),
-					visit(values[i])
-				});
+				auto efield = new EField;
+				efield->name = ids[i]->getText();
+				efield->exp = visit(values[i]);
+				exp->fields.push_back(ASTNode(efield));
 			}
 			return ASTNode(exp);
 		}
@@ -179,7 +181,8 @@ namespace tiger
 			exp->test = visit(ctx->exp(0));
 			exp->then = visit(ctx->exp(1));
 			auto elsee = ctx->exp(2);
-			exp->elsee = elsee ? visit(elsee) : nullptr;
+			if (elsee)
+				exp->elsee = visit(elsee);
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitWhileExp(tigerParser::WhileExpContext *ctx) override {
@@ -260,7 +263,8 @@ namespace tiger
 			auto fundec = new FuncDec;
 			fundec->name = ctx->ID()->getText();
 			fundec->params = visit(ctx->tyfields());
-			fundec->rtype = ctx->type_id()->getText();
+			auto rtype = ctx->type_id();
+			fundec->rtype = rtype ? rtype->getText() : "";
 			fundec->body = visit(ctx->exp());
 			return ASTNode(fundec);
 		}
@@ -296,7 +300,12 @@ namespace tiger
 			auto ids = ctx->ID();
 			auto typeids = ctx->type_id();
 			for (size_t i = 0; i < ids.size(); ++i)
-				tyfields->fields.push_back({ ids[i]->getText(), typeids[i]->getText() });
+			{
+				auto field = new Field;
+				field->name = ids[i]->getText();
+				field->type = typeids[i]->getText();
+				tyfields->fields.push_back(ASTNode(field));
+			}
 			return ASTNode(tyfields);
 		}
 		virtual antlrcpp::Any visitClassVarDec(tigerParser::ClassVarDecContext *ctx) override {
@@ -321,8 +330,7 @@ namespace tiger
 		}
 	};
 
-	tiger::ASTNode parseAST(const std::string& source)
-	{
+	tiger::ASTNode parseAST(const std::string& source) {
 		using namespace antlr4;
 
 		std::stringstream ss(source);
@@ -336,12 +344,25 @@ namespace tiger
 		return visitor.visit(tree);
 	}
 
+
 	//TODO: dump ast after type-induction
 	class ASTDumper:public ASTVisitor
 	{
 	protected:
 		void dumpIndents() {
+			for (size_t i = 0; i < indents.size(); ++i) {
+				if (!indents[i])
+					cout << "|-";
+				else if (i + 1 == indents.size())
+					cout << "`-";
+				else
+					cout << "  ";
+			}
+		}
 
+		template<typename Iter>
+		Iter next(Iter iter) {
+			return ++iter;
 		}
 
 		virtual void visitNilExp(NilExp* nil) override {
@@ -354,7 +375,7 @@ namespace tiger
 		}
 		virtual void visitStringExp(StringExp* s) override{
 			dumpIndents();
-			cout << "StringLiteral " << this << " \"" << s->val << "\"\n";
+			cout << "StringLiteral " << this << " " << s->val << endl;
 		}
 		virtual void visitArrayExp(ArrayExp* arr) override{
 			dumpIndents();
@@ -372,16 +393,11 @@ namespace tiger
 			cout << "RecordInit " << this << " " << record->type << "{}" << endl;
 			if (!record->fields.empty()) {
 				indents.push_back(false);
-
-				std::vector<Field> tmpVec(record->fields.begin(),
-					record->fields.end());
-				for (int i = 0; i < tmpVec.size(); ++i)
-				{
-					dumpIndents();
-					cout << "Field[" << tmpVec[i].name << "]" << endl;
-					if (i == record->fields.size() - 1)
+				for (auto iter = record->fields.begin(); iter != record->fields.end(); ++iter) {
+					if (next(iter) == record->fields.end()) {
 						indents.back() = true;
-					visit(tmpVec[i].exp);
+					}
+					visit(*iter);
 				}
 				indents.pop_back();
 			}
@@ -398,7 +414,7 @@ namespace tiger
 			if (!call->params.empty()) {
 				indents.push_back(false);
 				for (auto iter = call->params.begin(); iter != call->params.end(); ++iter) {
-					if (iter == call->params.rbegin().base()) {
+					if (next(iter) == call->params.end()) {
 						indents.back() = true;
 					}
 					visit(*iter);
@@ -413,7 +429,7 @@ namespace tiger
 			indents.push_back(call->params.empty() ? true : false);
 			visit(call->var);
 			for (auto iter = call->params.begin(); iter != call->params.end(); ++iter) {
-				if (iter == call->params.rbegin().base()) {
+				if (next(iter) == call->params.end()) {
 					indents.back() = true;
 				}
 				visit(*iter);
@@ -430,8 +446,8 @@ namespace tiger
 		}
 		virtual void visitBinaryOpExp(BinOpExp* op) override {
 			dumpIndents();
-			static char opsymbols[] = { 
-				'*','/','+','-','=','<>','>=','<=','>','<','&','|' 
+			static char* opsymbols[] = { 
+				"*","/","+","-","=","<>",">=","<=",">","<","&","|" 
 			};
 			cout << "BinaryOpExp " << this << " " << opsymbols[op->op] << endl;
 			indents.push_back(false);
@@ -454,9 +470,15 @@ namespace tiger
 			cout << "IfExp " << this << endl;
 			indents.push_back(false);
 			visit(iff->test);
-			visit(iff->then);
-			indents.back() = true;
-			visit(iff->elsee);
+			if (!iff->elsee) {
+				indents.back() = true;
+				visit(iff->then);
+			}
+			else {
+				visit(iff->then);
+				indents.back() = true;
+				visit(iff->elsee);
+			}
 			indents.pop_back();
 		}
 		virtual void visitWhileExp(WhileExp* while_) override {
@@ -518,7 +540,7 @@ namespace tiger
 			if (!el->exps.empty()) {
 				indents.push_back(false);
 				for (auto iter = el->exps.begin(); iter != el->exps.end(); ++iter) {
-					if (iter == el->exps.rbegin().base()) {
+					if (next(iter) == el->exps.end()) {
 						indents.back() = true;
 					}
 					visit(*iter);
@@ -532,7 +554,7 @@ namespace tiger
 			if (!dl->decs.empty()) {
 				indents.push_back(false);
 				for (auto iter = dl->decs.begin(); iter != dl->decs.end(); ++iter) {
-					if (iter == dl->decs.rbegin().base()) {
+					if (next(iter) == dl->decs.end()) {
 						indents.back() = true;
 					}
 					visit(*iter);
@@ -557,7 +579,7 @@ namespace tiger
 			if (!cd->fields.empty()) {
 				indents.push_back(false);
 				for (auto iter = cd->fields.begin(); iter != cd->fields.end(); ++iter) {
-					if (iter == cd->fields.rbegin().base()) {
+					if (next(iter) == cd->fields.end()) {
 						indents.back() = true;
 					}
 					visit(*iter);
@@ -582,15 +604,80 @@ namespace tiger
 				<< "(" << fd->rtype << ")" << endl;
 			indents.push_back(false);
 			TyFields* tfields = (TyFields*)fd->params.get();
-			for (auto field : tfields->fields) {
-				dumpIndents();
-				cout << "ParamVarDec " << 
-			}
+			for (auto field : tfields->fields)
+				visit(field);
 			indents.back() = true;
 			visit(fd->body);
 			indents.pop_back();
 		}
-
+		virtual void visitImportDec(ImportDec* id) override {
+			dumpIndents();
+			cout << "ImportDeclaration " << this << " " << id->module << endl;
+		}
+		virtual void visitNameTy(NameTy* nt) override {
+			dumpIndents();
+			cout << "TypeAlias " << this << " " << nt->name << endl;
+		}
+		virtual void visitRecordTy(RecordTy* rt) override {
+			dumpIndents();
+			cout << "RecordTypeDef " << this << endl;
+			indents.push_back(false);
+			TyFields* tfields = (TyFields*)rt->tyfields.get();
+			for (auto iter = tfields->fields.begin(); iter != tfields->fields.end(); ++iter) {
+				if (next(iter) == tfields->fields.end()) {
+					indents.back() = true;
+				}
+				visit(*iter);
+			}
+			indents.pop_back();
+		}
+		virtual void visitArrayTy(ArrayTy* at) override {
+			dumpIndents();
+			cout << "ArrayTypeDef " << this << " " << at->type << "[]" << endl;
+		}
+		virtual void visitClassTy(ClassTy* ct) override {
+			dumpIndents();
+			cout << "ClassTypeDef " << this << " ";
+			if (!ct->super.empty())
+				cout << "extends " << ct->super << endl;
+			indents.push_back(false);
+			for (auto iter = ct->fields.begin(); iter != ct->fields.end(); ++iter) {
+				if (next(iter) == ct->fields.end()) {
+					indents.back() = true;
+				}
+				visit(*iter);
+			}
+			indents.pop_back();
+		}
+		virtual void visitMethodDec(MethodDec* md) override {
+			dumpIndents();
+			cout << "MethodDeclaration " << this << " " << md->name
+				<< "(" << md->rtype << ")" << endl;
+			indents.push_back(false);
+			TyFields* tfields = (TyFields*)md->params.get();
+			for (auto field : tfields->fields) visit(field);
+			indents.back() = true;
+			visit(md->body);
+			indents.pop_back();
+		}
+		virtual void visitField(Field* f) override {
+			dumpIndents();
+			cout << "FieldDec " << this << " "
+				<< f->name << ":" << f->type << endl;
+		}
+		virtual void visitEField(EField* e) override {
+			dumpIndents();
+			cout << "EFieldDec " << this << " " << e->name << endl;
+			indents.push_back(true);
+			visit(e->exp);
+			indents.pop_back();
+		}
 		std::vector<bool> indents; //right
 	};
+
+	void dumpAST(ASTNode tree) {
+		ASTDumper dumper;
+		dumper.visit(tree);
+	}
+
 }

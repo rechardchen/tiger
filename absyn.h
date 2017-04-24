@@ -14,7 +14,8 @@ namespace tiger
 		A_Invalid, A_Nil, A_String, A_Int, A_Array, A_Record, A_New, A_Call, A_MethodCall,
 		A_UnaryOp, A_BinOp, A_Assign, A_If, A_While, A_For, A_Break, A_Let,
 		A_SimpleVar, A_FieldVar, A_SubscriptVar, A_ExpList, A_DeclareList, A_TypeDec, A_ClassDec, A_VarDec,
-		A_TyFields, A_FuncDec, A_ImportDec, A_NameTy, A_RecordTy, A_ArrayTy, A_ClassTy, A_MethodDec
+		A_TyFields, A_FuncDec, A_ImportDec, A_NameTy, A_RecordTy, A_ArrayTy, A_ClassTy, A_MethodDec,
+		A_Field, A_EField
 	};
 	struct BaseASTNode
 	{
@@ -32,12 +33,6 @@ namespace tiger
 		IntExp() :BaseASTNode(A_Int) {}
 		int val; 
 	};
-	
-	struct Field
-	{
-		std::string name;
-		ASTNode exp;
-	};
 
 	struct ArrayExp : public BaseASTNode
 	{
@@ -45,11 +40,17 @@ namespace tiger
 		std::string type;
 		ASTNode size, init;
 	};
+	struct EField : public BaseASTNode
+	{
+		EField() : BaseASTNode(A_EField) {}
+		std::string name;
+		ASTNode exp;
+	};
 	struct RecordExp : public BaseASTNode
 	{
 		RecordExp() :BaseASTNode(A_Record) {}
 		std::string type;
-		std::list<Field> fields;
+		std::list<ASTNode> fields;
 	};
 	struct NewExp : public BaseASTNode
 	{
@@ -166,7 +167,9 @@ namespace tiger
 		std::string name, type;
 		ASTNode init;
 	};
-	struct TyField {
+	struct Field : public BaseASTNode
+	{
+		Field() : BaseASTNode(A_Field) {}
 		std::string name;
 		std::string type;
 		//bool escape = false;
@@ -174,7 +177,7 @@ namespace tiger
 	struct TyFields : public BaseASTNode
 	{
 		TyFields() :BaseASTNode(A_TyFields) {}
-		std::list<TyField> fields;
+		std::list<ASTNode> fields;
 	};
 	struct FuncDec : public BaseASTNode
 	{
@@ -248,11 +251,13 @@ namespace tiger
 		virtual void visitTyFields(TyFields*) {}
 		virtual void visitFuncDec(FuncDec*) {}
 		virtual void visitImportDec(ImportDec*) {}
-		virtual void visitNameTyp(NameTy*) {}
+		virtual void visitNameTy(NameTy*) {}
 		virtual void visitRecordTy(RecordTy*) {}
 		virtual void visitArrayTy(ArrayTy*) {}
 		virtual void visitClassTy(ClassTy*) {}
 		virtual void visitMethodDec(MethodDec*) {}
+		virtual void visitField(Field*) {}
+		virtual void visitEField(EField*) {}
 	};
 	//AST 
 	ASTNode parseAST(const std::string& source);
