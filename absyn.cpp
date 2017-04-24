@@ -3,6 +3,12 @@
 #include "grammar/tigerParser.h"
 #include "grammar/tigerBaseVisitor.h"
 #include "antlr4-runtime.h"
+#include <iostream>
+#include <vector>
+
+using std::cout;
+using std::endl;
+using std::vector;
 
 namespace tiger
 {
@@ -330,8 +336,261 @@ namespace tiger
 		return visitor.visit(tree);
 	}
 
+	//TODO: dump ast after type-induction
 	class ASTDumper:public ASTVisitor
 	{
+	protected:
+		void dumpIndents() {
 
+		}
+
+		virtual void visitNilExp(NilExp* nil) override {
+			dumpIndents();
+			cout << "NilLiteral " << this << endl;
+		}
+		virtual void visitIntExp(IntExp* i) override{
+			dumpIndents();
+			cout << "IntLiteral " << this << " " << i->val << endl;
+		}
+		virtual void visitStringExp(StringExp* s) override{
+			dumpIndents();
+			cout << "StringLiteral " << this << " \"" << s->val << "\"\n";
+		}
+		virtual void visitArrayExp(ArrayExp* arr) override{
+			dumpIndents();
+
+			cout << "ArrayInit " << this << " " << arr->type << "[]" << endl;
+			indents.push_back(false);
+			visit(arr->size);
+			indents.back() = true;
+			visit(arr->init);
+			indents.pop_back();
+		}
+		virtual void visitRecordExp(RecordExp* record) override {
+			dumpIndents();
+
+			cout << "RecordInit " << this << " " << record->type << "{}" << endl;
+			if (!record->fields.empty()) {
+				indents.push_back(false);
+
+				std::vector<Field> tmpVec(record->fields.begin(),
+					record->fields.end());
+				for (int i = 0; i < tmpVec.size(); ++i)
+				{
+					dumpIndents();
+					cout << "Field[" << tmpVec[i].name << "]" << endl;
+					if (i == record->fields.size() - 1)
+						indents.back() = true;
+					visit(tmpVec[i].exp);
+				}
+				indents.pop_back();
+			}
+		}
+		virtual void visitNewExp(NewExp* new_) override{
+			dumpIndents();
+
+			cout << "NewExp " << this << " " << new_->type << endl;
+		}
+		virtual void visitCallExp(CallExp* call) override {
+			dumpIndents();
+
+			cout << "CallExp " << this << " " << call->name << endl;
+			if (!call->params.empty()) {
+				indents.push_back(false);
+				for (auto iter = call->params.begin(); iter != call->params.end(); ++iter) {
+					if (iter == call->params.rbegin().base()) {
+						indents.back() = true;
+					}
+					visit(*iter);
+				}
+				indents.pop_back();
+			}
+		}
+		virtual void visitMethodCallExp(MethodCallExp* call) override {
+			dumpIndents();
+
+			cout << "MethodCallExp " << this << " " << call->method << endl;
+			indents.push_back(call->params.empty() ? true : false);
+			visit(call->var);
+			for (auto iter = call->params.begin(); iter != call->params.end(); ++iter) {
+				if (iter == call->params.rbegin().base()) {
+					indents.back() = true;
+				}
+				visit(*iter);
+			}
+			indents.pop_back();
+		}
+		virtual void visitUnaryOpExp(UnaryOpExp* op) override {
+			dumpIndents();
+
+			cout << "UnaryOpExp " << this << " '-'" << endl;
+			indents.push_back(true);
+			visit(op->exp);
+			indents.pop_back();
+		}
+		virtual void visitBinaryOpExp(BinOpExp* op) override {
+			dumpIndents();
+			static char opsymbols[] = { 
+				'*','/','+','-','=','<>','>=','<=','>','<','&','|' 
+			};
+			cout << "BinaryOpExp " << this << " " << opsymbols[op->op] << endl;
+			indents.push_back(false);
+			visit(op->lhs);
+			indents.back() = true;
+			visit(op->rhs);
+			indents.pop_back();
+		}
+		virtual void visitAssignExp(AssignExp* assign) override {
+			dumpIndents();
+			cout << "AssignExp " << this << endl;
+			indents.push_back(false);
+			visit(assign->var);
+			indents.back() = true;
+			visit(assign->exp);
+			indents.pop_back();
+		}
+		virtual void visitIfExp(IfExp* iff) override {
+			dumpIndents();
+			cout << "IfExp " << this << endl;
+			indents.push_back(false);
+			visit(iff->test);
+			visit(iff->then);
+			indents.back() = true;
+			visit(iff->elsee);
+			indents.pop_back();
+		}
+		virtual void visitWhileExp(WhileExp* while_) override {
+			dumpIndents();
+			cout << "WhileExp " << this << endl;
+			indents.push_back(false);
+			visit(while_->test);
+			indents.back() = true;
+			visit(while_->body);
+			indents.pop_back();
+		}
+		virtual void visitForExp(ForExp* for_) override {
+			dumpIndents();
+			cout << "ForExp " << this << " " << for_->var << endl;
+			indents.push_back(false);
+			visit(for_->lo);
+			visit(for_->hi);
+			indents.back() = true;
+			visit(for_->body);
+			indents.pop_back();
+		}
+		virtual void visitBreakExp(BreakExp*) override {
+			dumpIndents();
+			cout << "BreakExp " << this << endl;
+		}
+		virtual void visitLetExp(LetExp* let) override {
+			dumpIndents();
+			cout << "LetExp " << this << endl;
+			indents.push_back(false);
+			visit(let->decs);
+			indents.back() = true;
+			visit(let->exps);
+			indents.pop_back();
+		}
+		virtual void visitSimpleVar(SimpleVar* sv) override {
+			dumpIndents();
+			cout << "SimpleVarRef " << this << " " << sv->name << endl;
+		}
+		virtual void visitFieldVar(FieldVar* fv) override {
+			dumpIndents();
+			cout << "FieldVarRef " << this << " ." << fv->field << endl;
+			indents.push_back(true);
+			visit(fv->var);
+			indents.pop_back();
+		}
+		virtual void visitSubscriptVar(SubscriptVar* sv) override {
+			dumpIndents();
+			cout << "SubscriptVarRef " << this << endl;
+			indents.push_back(false);
+			visit(sv->var);
+			indents.back() = true;
+			visit(sv->exp);
+			indents.pop_back();
+		}
+		virtual void visitExpList(ExpList* el) override {
+			dumpIndents();
+			cout << "ExpList " << this << endl;
+			
+			if (!el->exps.empty()) {
+				indents.push_back(false);
+				for (auto iter = el->exps.begin(); iter != el->exps.end(); ++iter) {
+					if (iter == el->exps.rbegin().base()) {
+						indents.back() = true;
+					}
+					visit(*iter);
+				}
+				indents.pop_back();
+			}
+		}
+		virtual void visitDeclareList(DeclareList* dl) override {
+			dumpIndents();
+			cout << "DeclarationList " << this << endl;
+			if (!dl->decs.empty()) {
+				indents.push_back(false);
+				for (auto iter = dl->decs.begin(); iter != dl->decs.end(); ++iter) {
+					if (iter == dl->decs.rbegin().base()) {
+						indents.back() = true;
+					}
+					visit(*iter);
+				}
+				indents.pop_back();
+			}
+		}
+		virtual void visitTypeDec(TypeDec* td) override {
+			dumpIndents();
+			cout << "TypeDeclaration " << this << " " << td->name << endl;
+			indents.push_back(true);
+			visit(td->ty);
+			indents.pop_back();
+		}
+		virtual void visitClassDec(ClassDec* cd) override {
+			dumpIndents();
+			cout << "ClassDeclaration " << this << " " << cd->name;
+			if (!cd->super.empty()) {
+				cout << "(extends " << cd->super << ")";
+			}
+			cout << endl;
+			if (!cd->fields.empty()) {
+				indents.push_back(false);
+				for (auto iter = cd->fields.begin(); iter != cd->fields.end(); ++iter) {
+					if (iter == cd->fields.rbegin().base()) {
+						indents.back() = true;
+					}
+					visit(*iter);
+				}
+				indents.pop_back();
+			}
+		}
+		virtual void visitVarDec(VarDec* vd) override {
+			dumpIndents();
+			cout << "VarDeclaration " << this << " " << vd->name;
+			if (!vd->type.empty()) {
+				cout << " of type " << vd->type;
+			}
+			cout << endl;
+			indents.push_back(true);
+			visit(vd->init);
+			indents.pop_back();
+		}
+		virtual void visitFuncDec(FuncDec* fd) override {
+			dumpIndents();
+			cout << "FuncDeclaration " << this << " " << fd->name 
+				<< "(" << fd->rtype << ")" << endl;
+			indents.push_back(false);
+			TyFields* tfields = (TyFields*)fd->params.get();
+			for (auto field : tfields->fields) {
+				dumpIndents();
+				cout << "ParamVarDec " << 
+			}
+			indents.back() = true;
+			visit(fd->body);
+			indents.pop_back();
+		}
+
+		std::vector<bool> indents; //right
 	};
 }
