@@ -1,8 +1,8 @@
 /* error: syntax error, nil should not be preceded by type-id.  */
 let 
-	type rectype = {name:string, id:int}
-
-	var a:= rectype nil
+	type rectype = class { var name:string :="x" var id:int:=1}
+	var a := new rectype
+	var s := "hello rechard\n"
 in
 	a
 end

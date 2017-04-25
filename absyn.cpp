@@ -639,7 +639,8 @@ namespace tiger
 			dumpIndents();
 			cout << "ClassTypeDef " << this << " ";
 			if (!ct->super.empty())
-				cout << "extends " << ct->super << endl;
+				cout << "extends " << ct->super;
+			cout << endl;
 			indents.push_back(false);
 			for (auto iter = ct->fields.begin(); iter != ct->fields.end(); ++iter) {
 				if (next(iter) == ct->fields.end()) {
