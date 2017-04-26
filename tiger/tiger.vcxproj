@@ -24,6 +24,7 @@
     <ClCompile Include="..\grammar\tigerLexer.cpp" />
     <ClCompile Include="..\grammar\tigerParser.cpp" />
     <ClCompile Include="..\grammar\tigerVisitor.cpp" />
+    <ClCompile Include="..\symbol.cpp" />
     <ClCompile Include="..\tc.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -32,6 +33,7 @@
     <ClInclude Include="..\grammar\tigerLexer.h" />
     <ClInclude Include="..\grammar\tigerParser.h" />
     <ClInclude Include="..\grammar\tigerVisitor.h" />
+    <ClInclude Include="..\symbol.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F70B671E-FBA9-497F-BE76-EDA7E286C851}</ProjectGuid>
@@ -102,7 +104,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>ANTLR4CPP_STATIC;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ANTLR4CPP_STATIC;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)..\grammar\antlr4-runtime\src\</AdditionalIncludeDirectories>
     </ClCompile>

@@ -20,6 +20,7 @@
     </ClCompile>
     <ClCompile Include="..\absyn.cpp" />
     <ClCompile Include="..\tc.cpp" />
+    <ClCompile Include="..\symbol.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\grammar\tigerBaseVisitor.h">
@@ -35,5 +36,6 @@
       <Filter>grammar</Filter>
     </ClInclude>
     <ClInclude Include="..\absyn.h" />
+    <ClInclude Include="..\symbol.h" />
   </ItemGroup>
 </Project>
