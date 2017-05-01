@@ -21,6 +21,9 @@
     <ClCompile Include="..\absyn.cpp" />
     <ClCompile Include="..\tc.cpp" />
     <ClCompile Include="..\symbol.cpp" />
+    <ClCompile Include="..\type.cpp" />
+    <ClCompile Include="..\temp.cpp" />
+    <ClCompile Include="..\driver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\grammar\tigerBaseVisitor.h">
@@ -37,5 +40,13 @@
     </ClInclude>
     <ClInclude Include="..\absyn.h" />
     <ClInclude Include="..\symbol.h" />
+    <ClInclude Include="..\allocator.h" />
+    <ClInclude Include="..\utils.h" />
+    <ClInclude Include="..\type.h" />
+    <ClInclude Include="..\semant.h" />
+    <ClInclude Include="..\translate.h" />
+    <ClInclude Include="..\frame.h" />
+    <ClInclude Include="..\tree.h" />
+    <ClInclude Include="..\temp.h" />
   </ItemGroup>
 </Project>

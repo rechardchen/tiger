@@ -1,4 +1,5 @@
 #include "symbol.h"
+#include "allocator.h"
 #include <cstring>
 #include <unordered_set>
 
@@ -22,21 +23,24 @@ namespace tiger
 		size_t(*)(const char*),
 		bool(*)(const char*, const char*)> s_symbols(100, &hash_string, &equal_string);
 
-	Symbol::Symbol(const std::string& name) {
-		if (!name.empty()) {
-			auto iter = s_symbols.find(name.c_str());
-			if (iter == s_symbols.end()) {
-				auto l = name.length();
-				auto tmp = new char[l + 1];
-				strncpy(tmp, name.c_str(), l);
-				tmp[l] = '\0';
+	static BumpPtrAllocator s_symbolPool;
 
+	const char* Symbol::intern(const char* str) {
+		size_t n = strlen(str);
+		if (n != 0) {
+			auto iter = s_symbols.find(str);
+			if (iter == s_symbols.end()) {
+				auto tmp = s_symbolPool.Allocate<char>(n + 1);
+				memcpy(tmp, str, n);
+				tmp[n] = '\0';
 				s_symbols.insert(tmp);
-				mName = tmp;
+				return tmp;
 			}
 			else {
-				mName = *iter;
+				return *iter;
 			}
 		}
+		return nullptr;
 	}
+
 }

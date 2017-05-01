@@ -20,20 +20,31 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\absyn.cpp" />
+    <ClCompile Include="..\driver.cpp" />
     <ClCompile Include="..\grammar\tigerBaseVisitor.cpp" />
     <ClCompile Include="..\grammar\tigerLexer.cpp" />
     <ClCompile Include="..\grammar\tigerParser.cpp" />
     <ClCompile Include="..\grammar\tigerVisitor.cpp" />
     <ClCompile Include="..\symbol.cpp" />
     <ClCompile Include="..\tc.cpp" />
+    <ClCompile Include="..\temp.cpp" />
+    <ClCompile Include="..\type.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\absyn.h" />
+    <ClInclude Include="..\allocator.h" />
+    <ClInclude Include="..\frame.h" />
     <ClInclude Include="..\grammar\tigerBaseVisitor.h" />
     <ClInclude Include="..\grammar\tigerLexer.h" />
     <ClInclude Include="..\grammar\tigerParser.h" />
     <ClInclude Include="..\grammar\tigerVisitor.h" />
+    <ClInclude Include="..\semant.h" />
     <ClInclude Include="..\symbol.h" />
+    <ClInclude Include="..\temp.h" />
+    <ClInclude Include="..\translate.h" />
+    <ClInclude Include="..\tree.h" />
+    <ClInclude Include="..\type.h" />
+    <ClInclude Include="..\utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F70B671E-FBA9-497F-BE76-EDA7E286C851}</ProjectGuid>
