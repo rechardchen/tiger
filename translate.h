@@ -32,6 +32,8 @@ namespace tiger {
 		virtual TExp* unEx() override;
 		virtual TStm* unNx() override;
 		virtual TStm* unCx(Label t, Label f) override;
-		TCjump* cj;
+
+		TStm* s;
+		std::vector<Label*> truelist, falselist;
 	};
 }
