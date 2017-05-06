@@ -1,34 +1,21 @@
+#include "allocator.h"
 #include "absyn.h"
-#include "symbol.h"
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <map>
 
 using namespace std;
 using namespace tiger;
 
-#pragma pack(push, 1)
-struct C {
-	char c;
-	union {
-		double d;
-		long double ld;
-		long long ll;
-		void* p;
-	}x;
-};
-#pragma pack(pop)
+
 int main()
 {
-	/*ifstream in("../samples/test49.tig");
+	ifstream fin("../samples/merge.tig");
 	stringstream ss;
-	ss << in.rdbuf();
-	dumpAST(parseAST(ss.str()));*/
-	//Symbol s("rechardchen"), t("rechardchen");
-	cout << sizeof(C) << endl;
-	cout << offsetof(C, x) << endl;
-	cout << alignof(C) << endl;
-
+	ss << fin.rdbuf();
+	auto tree = parseAST(ss.str());
+	dumpAST(tree);
 	char _c;
 	cin >> _c;
 

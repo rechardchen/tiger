@@ -24,6 +24,9 @@
     <ClCompile Include="..\type.cpp" />
     <ClCompile Include="..\temp.cpp" />
     <ClCompile Include="..\driver.cpp" />
+    <ClCompile Include="..\translate.cpp" />
+    <ClCompile Include="..\semant.cpp" />
+    <ClCompile Include="..\env.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\grammar\tigerBaseVisitor.h">
@@ -48,5 +51,7 @@
     <ClInclude Include="..\frame.h" />
     <ClInclude Include="..\tree.h" />
     <ClInclude Include="..\temp.h" />
+    <ClInclude Include="..\env.h" />
+    <ClInclude Include="..\x86masmframe.h" />
   </ItemGroup>
 </Project>

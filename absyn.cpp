@@ -16,7 +16,7 @@ namespace tiger
 		switch (node->type)
 		{
 #define DISPATCH(E, T, V) \
-		case E: return V((T*)node.get());
+		case E: return V((T*)node);
 
 		DISPATCH(A_Nil, NilExp, visitNilExp);
 		DISPATCH(A_String, StringExp, visitStringExp);
@@ -262,7 +262,8 @@ namespace tiger
 		virtual antlrcpp::Any visitFunDec(tigerParser::FunDecContext *ctx) override {
 			auto fundec = new FuncDec;
 			fundec->name = ctx->ID()->getText();
-			fundec->params = visit(ctx->tyfields());
+			ASTNode tmp = visit(ctx->tyfields());
+			fundec->params = static_cast<TyFields*>(tmp);
 			auto rtype = ctx->type_id();
 			fundec->rtype = rtype ? rtype->getText() : "";
 			fundec->body = visit(ctx->exp());
@@ -280,7 +281,9 @@ namespace tiger
 		}
 		virtual antlrcpp::Any visitRecordTy(tigerParser::RecordTyContext *ctx) override {
 			auto recordTy = new RecordTy;
-			recordTy->tyfields = visit(ctx->tyfields());
+			ASTNode tmp = visit(ctx->tyfields());
+			assert(tmp->type == A_TyFields);
+			recordTy->tyfields = static_cast<TyFields*>(tmp);
 			return ASTNode(recordTy);
 		}
 		virtual antlrcpp::Any visitArrayTy(tigerParser::ArrayTyContext *ctx) override {
@@ -304,7 +307,7 @@ namespace tiger
 				auto field = new Field;
 				field->name = ids[i]->getText();
 				field->type = typeids[i]->getText();
-				tyfields->fields.push_back(ASTNode(field));
+				tyfields->fields.push_back(field);
 			}
 			return ASTNode(tyfields);
 		}
@@ -314,7 +317,8 @@ namespace tiger
 		virtual antlrcpp::Any visitMethodDec(tigerParser::MethodDecContext *ctx) override {
 			auto method = new MethodDec;
 			method->name = ctx->ID()->getText();
-			method->params = visit(ctx->tyfields());
+
+			method->params = static_cast<TyFields*>(visit(ctx->tyfields()));
 			auto rtype = ctx->type_id();
 			method->rtype = rtype ? rtype->getText() : "";
 			method->body = visit(ctx->exp());
@@ -603,7 +607,8 @@ namespace tiger
 			cout << "FuncDeclaration " << this << " " << fd->name 
 				<< "(" << fd->rtype << ")" << endl;
 			indents.push_back(false);
-			TyFields* tfields = (TyFields*)fd->params.get();
+			//TyFields* tfields = (TyFields*)fd->params.get();
+			TyFields* tfields = (TyFields*)fd->params;
 			for (auto field : tfields->fields)
 				visit(field);
 			indents.back() = true;
@@ -622,7 +627,8 @@ namespace tiger
 			dumpIndents();
 			cout << "RecordTypeDef " << this << endl;
 			indents.push_back(false);
-			TyFields* tfields = (TyFields*)rt->tyfields.get();
+			//TyFields* tfields = (TyFields*)rt->tyfields.get();
+			TyFields* tfields = (TyFields*)rt->tyfields;
 			for (auto iter = tfields->fields.begin(); iter != tfields->fields.end(); ++iter) {
 				if (next(iter) == tfields->fields.end()) {
 					indents.back() = true;
@@ -655,7 +661,8 @@ namespace tiger
 			cout << "MethodDeclaration " << this << " " << md->name
 				<< "(" << md->rtype << ")" << endl;
 			indents.push_back(false);
-			TyFields* tfields = (TyFields*)md->params.get();
+			//TyFields* tfields = (TyFields*)md->params.get();
+			TyFields* tfields = (TyFields*)md->params;
 			for (auto field : tfields->fields) visit(field);
 			indents.back() = true;
 			visit(md->body);

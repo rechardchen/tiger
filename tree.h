@@ -2,6 +2,10 @@
 #include "temp.h"
 #include <vector>
 
+//TODO:
+//support single and double precision floating numbers
+//support variable-len integers
+
 //IR-tree
 namespace tiger {
 	struct TStm;

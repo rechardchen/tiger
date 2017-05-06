@@ -1,39 +1,58 @@
 #pragma once
 #include "temp.h"
+#include "allocator.h"
+#include "frame.h"
 #include <vector>
 
 namespace tiger {
 	struct TExp;
 	struct TStm;
-	struct TCjump;
+	class Frame;
 
-	struct TrExp {
+	class TrExp {
+	public:
 		virtual TExp* unEx() = 0;
 		virtual TStm* unNx() = 0;
 		virtual TStm* unCx(Label t, Label f) = 0;
 	};
 
-	struct TrEx : public TrExp {
-		virtual TExp* unEx() override { return e; }
-		virtual TStm* unNx() override;
-		virtual TStm* unCx(Label t, Label f) override;
 
-		TExp* e;
+	class TrLevel;
+	struct TrAccess {
+		TrLevel* level = nullptr;
+		FAccess access;
 	};
 
-	struct TrNx : public TrExp {
-		virtual TExp* unEx() override;
-		virtual TStm* unNx() override { return s; }
-		virtual TStm* unCx(Label t, Label f) override;
-		TStm* s;
+	class TrLevel {
+	public:
+		//TODO: delete this member, use a TU-Context instead
+		TrLevel(BumpPtrAllocator& context);
+		TrAccess AllocLocal(bool escape);
+
+	public:
+		TrLevel* Parent = nullptr;
+		Frame* Frame = nullptr;
+		Label Name;
+		std::vector<bool> Formals;
+
+	protected:
+		BumpPtrAllocator& C;
 	};
 
-	struct TrCx : public TrExp {
-		virtual TExp* unEx() override;
-		virtual TStm* unNx() override;
-		virtual TStm* unCx(Label t, Label f) override;
 
-		TStm* s;
-		std::vector<Label*> truelist, falselist;
+	//TranslationUnit, IR-tree translator
+	class Translate {
+	public:
+		Translate(BumpPtrAllocator& allocator);
+
+		TrLevel* OutmostLevel() { return InitLevel; }
+		TrLevel* NewLevel(TrLevel* parent, Label name, const std::vector<bool>& formals);
+		TrLevel* CurLevel() const { return CurrentLevel; }
+
+		TrExp* CombineStm(TrExp* s1, TrExp* s2);
+		TrExp* TransSimpleVar(TrAccess);
+	private:
+		TrLevel* InitLevel, *CurrentLevel;
+		BumpPtrAllocator& C;
 	};
 }

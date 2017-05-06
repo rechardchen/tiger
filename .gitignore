@@ -8,3 +8,7 @@ tiger/.vs/tiger/v14/.suo
 tiger/Debug/tiger.tlog/CL.command.1.tlog
 *.tlog
 *.exe
+tiger/tiger.vcxproj.user
+tiger/bin/vs-2015/x86/Debug Static/antlr4-runtime.lib
+tiger/Debug/tiger.ilk
+*.idb

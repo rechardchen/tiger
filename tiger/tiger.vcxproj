@@ -21,18 +21,22 @@
   <ItemGroup>
     <ClCompile Include="..\absyn.cpp" />
     <ClCompile Include="..\driver.cpp" />
+    <ClCompile Include="..\env.cpp" />
     <ClCompile Include="..\grammar\tigerBaseVisitor.cpp" />
     <ClCompile Include="..\grammar\tigerLexer.cpp" />
     <ClCompile Include="..\grammar\tigerParser.cpp" />
     <ClCompile Include="..\grammar\tigerVisitor.cpp" />
+    <ClCompile Include="..\semant.cpp" />
     <ClCompile Include="..\symbol.cpp" />
     <ClCompile Include="..\tc.cpp" />
     <ClCompile Include="..\temp.cpp" />
+    <ClCompile Include="..\translate.cpp" />
     <ClCompile Include="..\type.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\absyn.h" />
     <ClInclude Include="..\allocator.h" />
+    <ClInclude Include="..\env.h" />
     <ClInclude Include="..\frame.h" />
     <ClInclude Include="..\grammar\tigerBaseVisitor.h" />
     <ClInclude Include="..\grammar\tigerLexer.h" />
@@ -45,6 +49,7 @@
     <ClInclude Include="..\tree.h" />
     <ClInclude Include="..\type.h" />
     <ClInclude Include="..\utils.h" />
+    <ClInclude Include="..\x86masmframe.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F70B671E-FBA9-497F-BE76-EDA7E286C851}</ProjectGuid>
@@ -118,6 +123,7 @@
       <PreprocessorDefinitions>ANTLR4CPP_STATIC;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>$(ProjectDir)..\grammar\antlr4-runtime\src\</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4291</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

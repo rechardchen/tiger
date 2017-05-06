@@ -47,9 +47,14 @@ namespace tiger
 		typedef std::unordered_map<Symbol, T*, Symbol::Hasher> TableType;
 
 	public:
+		SymbolTable() {
+			BeginScope();
+		}
+
 		void BeginScope() {
 			mTableStack.emplace_back(TableType());
 		}
+
 		void EndScope() {
 			mTableStack.pop_back();
 		}

@@ -102,7 +102,16 @@ namespace tiger {
 
 template<typename AllocatorT, size_t SlabSize, size_t SizeThreshold>
 void * operator new(size_t size, tiger::BumpPtrAllocatorImpl<AllocatorT, SlabSize, SizeThreshold>& allocator) {
-	return nullptr;
+	//struct S {
+	//	char c;
+	//	union {
+	//		double D;
+	//		long double LD;
+	//		long long L;
+	//		void *p;
+	//	} x;
+	//};
+	return allocator.Allocate(size, 1);
 }
 
 template<typename AllocatorT, size_t SlabSize, size_t SizeThreshold>

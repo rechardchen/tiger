@@ -7,7 +7,8 @@
 namespace tiger
 {
 	struct BaseASTNode;
-	typedef std::shared_ptr<BaseASTNode> ASTNode;
+	//typedef std::shared_ptr<BaseASTNode> ASTNode;
+	typedef BaseASTNode* ASTNode;
 
 	enum ASTNodeType
 	{
@@ -38,13 +39,13 @@ namespace tiger
 	{
 		ArrayExp() :BaseASTNode(A_Array) {}
 		std::string type;
-		ASTNode size, init;
+		ASTNode size = nullptr, init = nullptr;
 	};
 	struct EField : public BaseASTNode
 	{
 		EField() : BaseASTNode(A_EField) {}
 		std::string name;
-		ASTNode exp;
+		ASTNode exp = nullptr;
 	};
 	struct RecordExp : public BaseASTNode
 	{
@@ -66,7 +67,7 @@ namespace tiger
 	struct MethodCallExp : public BaseASTNode
 	{
 		MethodCallExp() :BaseASTNode(A_MethodCall) {}
-		ASTNode var;
+		ASTNode var = nullptr;
 		std::string method;
 		std::list<ASTNode> params;
 	};
@@ -74,7 +75,7 @@ namespace tiger
 	{
 		UnaryOpExp() :BaseASTNode(A_UnaryOp) {}
 		enum { OP_NEG } op;
-		ASTNode exp;
+		ASTNode exp = nullptr;
 	};
 	struct BinOpExp : public BaseASTNode
 	{
@@ -84,32 +85,32 @@ namespace tiger
 			OP_EQ, OP_NE, OP_GE, OP_LE, OP_GT, OP_LT,
 			OP_AND, OP_OR
 		} op;
-		ASTNode lhs, rhs;
+		ASTNode lhs=nullptr, rhs=nullptr;
 	};
 	struct AssignExp : public BaseASTNode
 	{
 		AssignExp() :BaseASTNode(A_Assign) {}
 		//var := exp
-		ASTNode var, exp;
+		ASTNode var=nullptr, exp=nullptr;
 	};
 	struct IfExp : public BaseASTNode
 	{
 		IfExp() :BaseASTNode(A_If) {}
 		//if test then else elsee
-		ASTNode test, then, elsee;
+		ASTNode test = nullptr, then = nullptr, elsee = nullptr;
 	};
 	struct WhileExp : public BaseASTNode
 	{
 		WhileExp() :BaseASTNode(A_While) {}
 		//while test do body
-		ASTNode test, body;
+		ASTNode test=nullptr, body=nullptr;
 	};
 	struct ForExp : public BaseASTNode
 	{
 		ForExp() :BaseASTNode(A_For) {}
 		//for var := lo to hi do body
 		std::string var;
-		ASTNode lo, hi, body;
+		ASTNode lo=nullptr, hi=nullptr, body=nullptr;
 	};
 	struct BreakExp : public BaseASTNode
 	{
@@ -118,7 +119,7 @@ namespace tiger
 	struct LetExp : public BaseASTNode
 	{
 		LetExp() :BaseASTNode(A_Let) {}
-		ASTNode decs, exps;
+		ASTNode decs=nullptr, exps=nullptr;
 	};
 	
 	struct SimpleVar : public BaseASTNode
@@ -130,14 +131,14 @@ namespace tiger
 	{
 		FieldVar() :BaseASTNode(A_FieldVar) {}
 		//var.field
-		ASTNode var;
+		ASTNode var=nullptr;
 		std::string field;
 	};
 	struct SubscriptVar : public BaseASTNode
 	{
 		SubscriptVar() :BaseASTNode(A_SubscriptVar) {}
 		//var[exp]
-		ASTNode var, exp;
+		ASTNode var=nullptr, exp=nullptr;
 	};
 	struct ExpList : public BaseASTNode
 	{
@@ -153,7 +154,7 @@ namespace tiger
 	{
 		TypeDec() :BaseASTNode(A_TypeDec) {}
 		std::string name;
-		ASTNode ty;
+		ASTNode ty=nullptr;
 	};
 	struct ClassDec : public BaseASTNode
 	{
@@ -165,25 +166,27 @@ namespace tiger
 	{
 		VarDec() :BaseASTNode(A_VarDec) {}
 		std::string name, type;
-		ASTNode init;
+		ASTNode init=nullptr;
+		bool escape = false;
 	};
 	struct Field : public BaseASTNode
 	{
 		Field() : BaseASTNode(A_Field) {}
 		std::string name;
 		std::string type;
-		//bool escape = false;
+		bool escape = false;
 	};
 	struct TyFields : public BaseASTNode
 	{
 		TyFields() :BaseASTNode(A_TyFields) {}
-		std::list<ASTNode> fields;
+		std::list<Field*> fields;
 	};
 	struct FuncDec : public BaseASTNode
 	{
 		FuncDec() :BaseASTNode(A_FuncDec) {}
 		std::string name, rtype;
-		ASTNode body, params;
+		ASTNode body = nullptr;
+		TyFields* params = nullptr;
 	};
 	struct ImportDec : public BaseASTNode
 	{
@@ -198,7 +201,7 @@ namespace tiger
 	struct RecordTy : public BaseASTNode
 	{
 		RecordTy() :BaseASTNode(A_RecordTy) {}
-		ASTNode tyfields;
+		TyFields* tyfields=nullptr;
 	};
 	struct ArrayTy : public BaseASTNode
 	{
@@ -215,7 +218,8 @@ namespace tiger
 	{
 		MethodDec() :BaseASTNode(A_MethodDec) {}
 		std::string name, rtype;
-		ASTNode body, params;
+		ASTNode body = nullptr;
+		TyFields* params = nullptr;
 	};
 
 	class ASTVisitor
