@@ -4,6 +4,8 @@
 
 namespace tiger {
 
+#define VALID_VAR_TYPE(ty) ((ty)->tt != Ty_Void)
+
 	Semant::Semant(BumpPtrAllocator& allocator)
 		: C(allocator)
 		, VENV(env::baseVEnv())
@@ -57,6 +59,7 @@ namespace tiger {
 					auto realNT = static_cast<NameType*>(realTy);
 					if (realNT->type == nullptr) {
 						reportErr("type %s has an incomplete definition!", tydec->name.c_str());
+						//TODO: pop error type
 						break;
 					}
 					else
@@ -67,37 +70,85 @@ namespace tiger {
 			}
 			else if (dec->type == A_VarDec) {
 				auto vardec = static_cast<VarDec*>(dec);
-				Type* ty = nullptr;
-				bool needTrans = true;
-				if (!vardec->type.empty()) { //if var type not specified, need type induction
-					ty = TENV.Look(vardec->type);
-					if (ty == nullptr) {
-						reportErr("type %s not exists!", vardec->type.c_str());
-						needTrans = false;
-					}
-				}
-
-				if (needTrans) {
-					ExpTy expty = TransExp(vardec->init); //TransExp do not return nullptr type
-					ty = ty == nullptr ? expty.second : ty;
-					if (!ValidateTypeCheck(ty, expty.second)) {
-						reportErr("type mismatch!");
-					}
-					else {
-						auto curLevel = Translator->CurLevel();
-						auto vAccess = curLevel->AllocLocal(vardec->escape);
-						auto entry = new(C) VarEntry;
-						entry->access = vAccess;
-						entry->type = expty.second;
-						VENV.Enter(vardec->name, entry);
-						
-						//code gen
-						TrExp* varExp = Translator->TransSimpleVar(vAccess);
-					}
+				auto expty = TransVarDec(vardec);
+				if (expty.second) {
+					if (initExp == nullptr) 
+						initExp = expty.first;
+					else 
+						initExp = Translator->CombineStm(initExp, expty.first);
 				}
 			}
 			else if (dec->type == A_FuncDec) {
-				//TODO
+				auto fundec = static_cast<FuncDec*>(dec);
+				Type* retType = VoidType();
+				if (!fundec->rtype.empty()) {
+					Type* rtype = TENV.Look(fundec->rtype);
+					if (!rtype) {
+						reportErr("%s is not a valid return type!", fundec->rtype.c_str());
+						retType = nullptr;
+					}
+					else {
+						retType = actualTy(rtype);
+					}
+				}
+				//check param types
+				bool validParam = true;
+				std::vector<Symbol> formalName;
+				std::vector<Type*> formalTypes;
+				std::vector<bool> formalEscape;
+				for (auto para : fundec->params->fields) {
+					Type* ty = TENV.Look(para->name);
+					if (!ty) {
+						reportErr("para %s has invalid type %s", para->name.c_str(),
+							para->type.c_str());
+						validParam = false;
+						break;
+					}
+					else {
+						formalTypes.push_back(actualTy(ty));
+						formalEscape.push_back(para->escape);
+						formalName.push_back(para->name);
+					}
+				}
+				if (retType && validParam) {
+					//for recursive func
+					auto entry = new(C) FuncEntry;
+					entry->level = Translator->CurLevel();
+					entry->paramTypes = formalTypes;
+					entry->resultType = retType;
+					FENV.Enter(fundec->name, entry);
+
+					TENV.BeginScope();
+					VENV.BeginScope();
+					FENV.BeginScope();
+					auto newLevel = Translator->NewLevel(
+						Translator->CurLevel(),
+						temp::newLabel(),
+						formalEscape
+					);
+					for (size_t i = 0; i < formalName.size(); ++i) {
+						auto entry = new(C)VarEntry;
+						entry->access = newLevel->Argument(i);
+						entry->type = formalTypes[i];
+
+						VENV.Enter(formalName[i], entry);
+					}
+					ExpTy expty = TransExp(fundec->body);
+					//make sure endscope is called
+					FENV.EndScope();
+					VENV.EndScope();
+					TENV.EndScope();
+					//check return type
+					if (expty.second == NULL ||
+						!ValidateTypeCheck(retType, expty.second)) {
+						reportErr("return type mismatch!");
+						FENV.Pop(fundec->name);
+						Translator->ExitLevel(nullptr);
+					}
+					else {
+						Translator->ExitLevel(expty.first);
+					}
+				}
 			}
 		}
 
@@ -161,4 +212,54 @@ namespace tiger {
 			ty = static_cast<NameType*>(ty)->type;
 		return ty;
 	}
+
+	Semant::ExpTy Semant::TransVarDec(VarDec* vardec) {
+		Type* ty = nullptr;
+		TrExp* exp = nullptr;
+		ExpTy ret(nullptr, nullptr);
+
+		if (!vardec->type.empty()) { //if var type not specified, need type induction
+			ty = TENV.Look(vardec->type);
+			if (ty == nullptr) {
+				reportErr("type %s not exists!", vardec->type.c_str());
+				return ret;
+			}
+			else {
+				ty = actualTy(ty);
+			}
+		}
+
+		ExpTy expty = TransExp(vardec->init); //TransExp do not return nullptr type
+		if (expty.second == nullptr)
+			return ret;
+
+		if (!VALID_VAR_TYPE(expty.second)) {
+			reportErr("cannot assign void to variable %s", vardec->name.c_str());
+			return ret;
+		}
+
+		if (ty == nullptr) //type deduce
+			ty = expty.second;
+
+		if (!ValidateTypeCheck(ty, expty.second)) {
+			reportErr("type mismatch!");
+			return ret;
+		}
+
+		auto curLevel = Translator->CurLevel();
+		auto vAccess = curLevel->AllocLocal(vardec->escape);
+		auto entry = new(C) VarEntry;
+		entry->access = vAccess;
+		entry->type = expty.second;
+		VENV.Enter(vardec->name, entry);
+
+		//code gen
+		TrExp* varExp = Translator->TransSimpleVar(vAccess);
+		TrExp* assign = Translator->TransAssign(varExp, expty.first);
+
+		ret.first = assign;
+		ret.second = ty;
+		return ret;
+	}
+
 }

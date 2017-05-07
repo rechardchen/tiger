@@ -28,6 +28,7 @@ namespace tiger {
 		//TODO: delete this member, use a TU-Context instead
 		TrLevel(BumpPtrAllocator& context);
 		TrAccess AllocLocal(bool escape);
+		TrAccess Argument(int i);
 
 	public:
 		TrLevel* Parent = nullptr;
@@ -48,9 +49,12 @@ namespace tiger {
 		TrLevel* OutmostLevel() { return InitLevel; }
 		TrLevel* NewLevel(TrLevel* parent, Label name, const std::vector<bool>& formals);
 		TrLevel* CurLevel() const { return CurrentLevel; }
+		void	 ExitLevel(TrExp* body);
 
 		TrExp* CombineStm(TrExp* s1, TrExp* s2);
 		TrExp* TransSimpleVar(TrAccess);
+		TrExp* TransAssign(TrExp* target, TrExp* exp);
+		
 	private:
 		TrLevel* InitLevel, *CurrentLevel;
 		BumpPtrAllocator& C;

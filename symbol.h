@@ -64,6 +64,11 @@ namespace tiger
 			table[sym] = value;
 		}
 
+		void Pop(Symbol sym) {
+			auto& table = mTableStack.back();
+			table.erase(sym);
+		}
+
 		T* Look(Symbol sym) {
 			T* val = nullptr;
 			for (auto iter = mTableStack.rbegin(); iter != mTableStack.rend(); ++iter) {

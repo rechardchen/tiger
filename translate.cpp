@@ -54,20 +54,23 @@ namespace tiger {
 		return level;
 	}
 
+	void Translate::ExitLevel(TrExp* body)
+	{
+		//TODO
+		TrLevel* curLevel = CurLevel();
+		CurrentLevel = curLevel->Parent;
+
+	}
+
 	TrExp* Translate::CombineStm(TrExp* s1, TrExp* s2)
 	{
-		assert(s1 != nullptr || s2 != nullptr);
-		if (s1 == nullptr) 
-			return new(C) TrNx(s2->unNx());
-		else if (s2 == nullptr) 
-			return new(C) TrNx(s1->unNx());
-		else
-			return new(C)TrNx(
-				new(C)TSeq(
-					s1->unNx(), 
-					s2->unNx()
-				)
-			);
+		assert(s1 != nullptr && s2 != nullptr);
+		return new(C)TrNx(
+			new(C)TSeq(
+				s1->unNx(), 
+				s2->unNx()
+			)
+		);
 	}
 
 	TrExp* Translate::TransSimpleVar(TrAccess vAccess)
@@ -108,5 +111,15 @@ namespace tiger {
 			}
 		}
 	}
+
+	TrExp* Translate::TransAssign(TrExp* target, TrExp* exp)
+	{
+		return new(C)TrNx(new(C)TMove(
+			target->unEx(), 
+			exp->unEx())
+		);
+	}
+
+	
 
 }
