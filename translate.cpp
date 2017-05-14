@@ -280,7 +280,7 @@ namespace tiger {
 
 	TrExp* Translate::TransStrConcat(TrExp* lhs, TrExp* rhs)
 	{
-		return new(C)TrEx(ExternelCall("concat_str", {
+		return new(C)TrEx(ExternelCall("concatStr", {
 			lhs->unEx(), rhs->unEx()
 		}));
 	}
