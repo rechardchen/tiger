@@ -22,6 +22,12 @@ namespace tiger
 		inline bool operator==(const Symbol& rhs) const { 
 			return mName == rhs.mName;
 		}
+		inline operator const char*() const {
+			return mName ? mName : "";
+		}
+		inline operator std::string() const {
+			return mName ? std::string(mName) : std::string("");
+		}
 		
 	public:
 		struct Hasher {

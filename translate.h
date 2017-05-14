@@ -5,6 +5,7 @@
 #include <vector>
 
 namespace tiger {
+	struct RecordType;
 	struct TExp;
 	struct TStm;
 	class Frame;
@@ -40,7 +41,6 @@ namespace tiger {
 		BumpPtrAllocator& C;
 	};
 
-
 	//TranslationUnit, IR-tree translator
 	class Translate {
 	public:
@@ -52,11 +52,32 @@ namespace tiger {
 		void	 ExitLevel(TrExp* body);
 
 		TrExp* CombineStm(TrExp* s1, TrExp* s2);
+
 		TrExp* TransSimpleVar(TrAccess);
+		TrExp* TransFieldVar(TrExp* var, RecordType* type, Symbol field);
+		TrExp* TransSubscriptVar(TrExp* var, TrExp* exp);
+
+		TrExp* TransConst(int i);
+		TrExp* TransStrConst(Symbol s);
+		TrExp* TransArrayInit(TrExp* size, TrExp* init); //A[x] = init
+		TrExp* TransRecordInit(RecordType* type, const std::vector<Symbol>& fnames, const std::vector<TrExp*>& fexps);
+		TrExp* TransCall(Label f, const std::vector<TrExp*>&);
 		TrExp* TransAssign(TrExp* target, TrExp* exp);
+		TrExp* TransBinarySub(TrExp* lhs, TrExp* rhs);
+		TrExp* TransBinaryMul(TrExp* lhs, TrExp* rhs);
+		TrExp* TransBinaryDiv(TrExp* lhs, TrExp* rhs);
+		TrExp* TransBinaryAdd(TrExp* lhs, TrExp* rhs);
+		TrExp* TransStrConcat(TrExp* lhs, TrExp* rhs);
+		TrExp* TransFor(TrExp* lo, TrExp* hi, TrExp* body);
 		
 	private:
 		TrLevel* InitLevel, *CurrentLevel;
 		BumpPtrAllocator& C;
+
+		//TODO: global link labels = module + f/s-index
+		std::vector<Symbol> StringFrags;
+		std::vector<std::pair<TStm*, Frame*>> FuncFrags;
+
+		FExternalCall ExternelCall;
 	};
 }

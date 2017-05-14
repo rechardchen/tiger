@@ -27,10 +27,10 @@ namespace tiger {
 		ExpTy TransVarDec(VarDec*); //expty.second != null means success
 
 	protected:
-		//return null means not exists
-		//return nameRef means recursion
+		//only used where we must have the actual type
 		static Type* actualTy(Type* ty);
-		static bool ValidateTypeCheck(Type* left, Type* right); //type-conversion validation
+		//type-conversion validation
+		static bool ValidateTypeCheck(Type* left, Type* right);
 
 		VarEnv VENV;
 		FuncEnv FENV;

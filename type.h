@@ -25,6 +25,26 @@ namespace tiger {
 		typedef std::pair<Symbol, Type*> Field;
 		RecordType(const std::vector<Field>& fields) : Type(Ty_Record), fieldList(fields) {}
 		std::vector<Field> fieldList;
+
+		Type* GetMemberTy(Symbol name) {
+			for (auto f : fieldList) {
+				if (f.first == name) return f.second;
+			}
+			return nullptr;
+		}
+		int GetMemberOffset(Symbol name) {
+			int offset = -1;
+			for (size_t i = 0; i < fieldList.size(); ++i) {
+				if (fieldList[i].first == name) {
+					offset = (int)i;
+					break;
+				}
+			}
+			return offset;
+		}
+		int GetMemberNum()const {
+			return (int)fieldList.size();
+		}
 	};
 
 	//nil, void, int, string types are static allocated

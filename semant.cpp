@@ -15,9 +15,272 @@ namespace tiger {
 		Translator = new (C) Translate(C);
 	}
 
-	Semant::ExpTy Semant::TransExp(ASTNode)
+	Semant::ExpTy Semant::TransExp(ASTNode n)
 	{
-		return ExpTy(nullptr, nullptr);
+		ExpTy ret;
+		switch (n->type) {
+		case A_Nil:
+		{
+			ret.first = Translator->TransConst(0);
+			ret.second = NilType();
+		}
+			break;
+
+		case A_Int:
+		{
+			auto ix = static_cast<IntExp*>(n);
+			ret.first = Translator->TransConst(ix->val);
+			ret.second = IntType();
+		}
+			break;
+
+		case A_String:
+		{
+			auto sx = static_cast<StringExp*>(n);
+			ret.first = Translator->TransStrConst(sx->val);
+			ret.second = StringType();
+		}
+			break;
+
+		case A_Array:
+		{
+			auto ax = static_cast<ArrayExp*>(n);
+			auto ty = TENV.Look(ax->type);
+			if (ty) {
+				auto expty = TransExp(ax->init);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (!ValidateTypeCheck(ty, expty.second)) {
+					reportErr("type mismatch!");
+					goto TRANS_EXP_ERR;
+				}
+				auto initExp = expty.first;
+				expty = TransExp(ax->size);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (expty.second != IntType()) {
+					reportErr("array index must be integer");
+					goto TRANS_EXP_ERR;
+				}
+				auto sizeExp = expty.first;
+				ret.first = Translator->TransArrayInit(sizeExp, initExp);
+				//so we need to add special validate in ValidateTypeCheck for arrays
+				ret.second = new(C)ArrayType(ty);
+			}
+			else {
+				reportErr("type %s not defined", ax->type.c_str());
+			}
+		}
+			break;
+
+		case A_Record:
+		{
+			auto rx = static_cast<RecordExp*>(n);
+			auto ty = TENV.Look(rx->type);
+			if (ty) {
+				ty = actualTy(ty);
+				if (ty->tt != Ty_Record) {
+					reportErr("%s is not a record type", rx->type.c_str());
+					goto TRANS_EXP_ERR;
+				}
+
+				auto rt = static_cast<RecordType*>(ty);
+				std::vector<Symbol> fnames;
+				std::vector<TrExp*> fexps;
+				for (auto field : rx->fields) {
+					auto efield = static_cast<EField*>(field);
+					auto fieldTy = rt->GetMemberTy(efield->name);
+					if (fieldTy == nullptr) {
+						reportErr("%s is not a valid field name", efield->name.c_str());
+						goto TRANS_EXP_ERR;
+					}
+					ExpTy expty = TransExp(efield->exp);
+					if (expty.second == nullptr)
+						goto TRANS_EXP_ERR;
+
+					if (!ValidateTypeCheck(fieldTy, expty.second)) {
+						reportErr("field %s type mismatch!", efield->name.c_str());
+						goto TRANS_EXP_ERR;
+					}
+					fnames.push_back(efield->name);
+					fexps.push_back(expty.first);
+				}
+				ret.second = ty;
+				ret.first = Translator->TransRecordInit(rt, fnames, fexps);
+			}
+			else {
+				reportErr("type %s not exists", rx->type.c_str());
+			}
+		}
+			break;
+
+		case A_Call:
+		{
+			auto cx = static_cast<CallExp*>(n);
+
+			auto entry = FENV.Look(cx->name);
+			if (entry == nullptr) {
+				reportErr("func %s is not defined", cx->name.c_str());
+				goto TRANS_EXP_ERR;
+			}
+			//check params
+			if (cx->params.size() != entry->paramTypes.size()) {
+				reportErr("number of parameter not match!");
+				goto TRANS_EXP_ERR;
+			}
+			std::vector<ASTNode> params(cx->params.begin(), cx->params.end());
+			std::vector<TrExp*> exps;
+			for (size_t i = 0; i < params.size(); ++i) {
+				ExpTy expty = TransExp(params[i]);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (!ValidateTypeCheck(entry->paramTypes[i], expty.second)) {
+					reportErr("type mismatch!");
+					goto TRANS_EXP_ERR;
+				}
+				exps.push_back(expty.first);
+			}
+			ret.second = actualTy(entry->resultType);
+			ret.first = Translator->TransCall(entry->level->Name, exps);
+		}
+			break;
+
+		case A_UnaryOp:
+		{
+			auto ux = static_cast<UnaryOpExp*>(n);
+			auto expty = TransExp(ux->exp);
+			
+			if (expty.second) {
+				if (expty.second != IntType()) {
+					reportErr("not implemented: unary op only support integers");
+					goto TRANS_EXP_ERR;
+				}
+				ret.second = IntType();
+				ret.first = Translator->TransBinarySub(Translator->TransConst(0), expty.first);
+			}
+		}
+			break;
+
+		case A_BinOp:
+		{
+			auto bx = static_cast<BinOpExp*>(n);
+			switch (bx->op) {
+			case BinOpExp::OP_MUL:
+			{
+				ExpTy expty = TransExp(bx->lhs);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (expty.second != IntType()) {
+					reportErr("invalid oprand type, integer expected!");
+					goto TRANS_EXP_ERR;
+				}
+				auto lhs = expty.first;
+				
+				expty = TransExp(bx->rhs);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (expty.second != IntType()) {
+					reportErr("invalid oprand type, integer expected!");
+					goto TRANS_EXP_ERR;
+				}
+				auto rhs = expty.first;
+
+				ret.second = IntType();
+				ret.first = Translator->TransBinaryMul(lhs, rhs);
+			}
+				break;
+
+			case BinOpExp::OP_DIV:
+			{
+				ExpTy expty = TransExp(bx->lhs);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (expty.second != IntType()) {
+					reportErr("invalid oprand type, integer expected!");
+					goto TRANS_EXP_ERR;
+				}
+				auto lhs = expty.first;
+				expty = TransExp(bx->rhs);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (expty.second != IntType()) {
+					reportErr("invalid oprand type, integer expected!");
+					goto TRANS_EXP_ERR;
+				}
+				auto rhs = expty.first;
+				auto exp = Translator->TransBinaryDiv(lhs, rhs);
+				if (exp == nullptr) {
+					reportErr("zero division error!");
+					goto TRANS_EXP_ERR;
+				}
+				ret.second = IntType();
+				ret.first = exp;
+			}
+				break;
+
+			case BinOpExp::OP_ADD:
+			{
+				ExpTy expty = TransExp(bx->lhs);
+				if (expty.second==nullptr)
+					goto TRANS_EXP_ERR;
+				auto ltype = expty.second;
+				auto lexp = expty.first;
+
+				expty = TransExp(bx->rhs);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				auto rtype = expty.second;
+				auto rexp = expty.first;
+
+				if (ltype == IntType() && rtype == IntType()) {
+					ret.second = IntType();
+					ret.first = Translator->TransBinaryAdd(lexp, rexp);
+				}
+				else if (ltype == StringType() && rtype == StringType()) {
+					ret.second = StringType();
+					ret.first = Translator->TransStrConcat(lexp, rexp);
+				}
+				else {
+					reportErr("invalid oprand type, only integer and string addition is permitted!");
+					goto TRANS_EXP_ERR;
+				}
+			}
+				break;
+
+			case BinOpExp::OP_SUB:
+			{
+				ExpTy expty = TransExp(bx->lhs);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (expty.second != IntType()) {
+					reportErr("invalid oprand type, integer expected!");
+					goto TRANS_EXP_ERR;
+				}
+				auto lhs = expty.first;
+				expty = TransExp(bx->rhs);
+				if (expty.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (expty.second != IntType()) {
+					reportErr("invalid oprand type, integer expected!");
+					goto TRANS_EXP_ERR;
+				}
+				auto rhs = expty.first;
+
+				ret.second = IntType();
+				ret.first = Translator->TransBinarySub(lhs, rhs);
+			}
+				break;
+			}
+		}
+			break;
+
+		default:
+			assert(0);
+			break;
+		}
+
+TRANS_EXP_ERR:
+		return ret;
 	}
 
 	Semant::ExpTy Semant::TransDecs(ASTNode n)
@@ -112,20 +375,22 @@ namespace tiger {
 				}
 				if (retType && validParam) {
 					//for recursive func
-					auto entry = new(C) FuncEntry;
-					entry->level = Translator->CurLevel();
-					entry->paramTypes = formalTypes;
-					entry->resultType = retType;
-					FENV.Enter(fundec->name, entry);
-
-					TENV.BeginScope();
-					VENV.BeginScope();
-					FENV.BeginScope();
 					auto newLevel = Translator->NewLevel(
 						Translator->CurLevel(),
 						temp::newLabel(),
 						formalEscape
 					);
+					//register func in outer level
+					auto entry = new(C) FuncEntry;
+					entry->level = Translator->CurLevel(); //newlevel
+					entry->paramTypes = formalTypes;
+					entry->resultType = retType;
+					FENV.Enter(fundec->name, entry);
+					//begin level of the func
+					TENV.BeginScope();
+					VENV.BeginScope();
+					FENV.BeginScope();
+					
 					for (size_t i = 0; i < formalName.size(); ++i) {
 						auto entry = new(C)VarEntry;
 						entry->access = newLevel->Argument(i);
@@ -155,9 +420,90 @@ namespace tiger {
 		return ExpTy(initExp, nullptr);
 	}
 
-	Semant::ExpTy Semant::TransVar(ASTNode)
+	Semant::ExpTy Semant::TransVar(ASTNode n)
 	{
-		return ExpTy(nullptr, nullptr);
+		ExpTy ret;
+
+		switch (n->type) {
+		case A_SimpleVar:
+		{
+			auto sv = static_cast<SimpleVar*>(n);
+			auto entry = VENV.Look(sv->name);
+			if (!entry) {
+				reportErr("undefined variable %s", sv->name.c_str());
+			}
+			else {
+				ret.second = entry->type;
+				ret.first = Translator->TransSimpleVar(entry->access);
+			}
+		}
+			break;
+			
+		case A_FieldVar:
+		{
+			auto fv = static_cast<FieldVar*>(n);
+			auto expty = TransVar(fv->var);
+			auto ty = expty.second;
+			if (ty) {
+				if (ty->tt == Ty_Record) {
+					auto rt = static_cast<RecordType*>(ty);
+					ty = rt->GetMemberTy(fv->field);
+					if (ty) {
+						ty = actualTy(ty);
+
+						ret.second = ty;
+						ret.first = Translator->TransFieldVar(
+							expty.first,
+							rt,
+							fv->field
+						);
+					}
+					else {
+						reportErr("%s is not a valid field name", fv->field.c_str());
+					}
+				}
+				else {
+					reportErr("need a record type");
+				}
+			}
+		}
+			break;
+
+		case A_SubscriptVar:
+		{
+			auto sv = static_cast<SubscriptVar*>(n);
+			auto expty = TransVar(sv->var);
+			auto ty = expty.second;
+			if (ty) {
+				if (ty->tt != Ty_Array) {
+					reportErr("must be array type");
+				}
+				else {
+					auto itemTy = actualTy(static_cast<ArrayType*>(ty)->arrTy);
+					auto varExp = expty.first;
+					expty = TransExp(sv->exp);
+					if (expty.second != IntType()) {
+						reportErr("array index must be integer");
+					}
+					else {
+						ret.first = Translator->TransSubscriptVar(varExp, expty.first);
+						ret.second = itemTy;
+					}
+				}
+			}
+
+		}
+			break;
+
+		default: 
+		{
+			reportErr("need an l-value");
+			assert(0);
+		}
+			break;
+		}
+
+		return ret;
 	}
 
 	Type* Semant::TransTy(ASTNode n)
@@ -167,8 +513,10 @@ namespace tiger {
 		{
 			NameTy* nt = static_cast<NameTy*>(n);
 			Type* ty = TENV.Look(nt->name);
-			if (ty == nullptr)
+			if (ty == nullptr) {
 				reportErr("type %s not defined!", nt->name.c_str());
+				goto TRANS_TY_ERR;
+			}
 			return ty;
 		}
 			break;
@@ -181,9 +529,19 @@ namespace tiger {
 				RecordType::Field tempField;
 				tempField.first = field->name;
 				Type* ty = TENV.Look(field->type);
-				if (ty == nullptr) 
+				if (ty == nullptr) {
 					reportErr("type %s not defined!", field->type.c_str());
+					goto TRANS_TY_ERR;
+				}
 				tempField.second = ty;
+
+				for (auto f : fieldVec) {
+					if (f.first == tempField.first) {
+						reportErr("repeat field definition %s", tempField.first.Name());
+						goto TRANS_TY_ERR;
+					}
+				}
+
 				fieldVec.push_back(tempField);
 			}
 			return new (C) RecordType(fieldVec);
@@ -195,7 +553,10 @@ namespace tiger {
 			ArrayTy* at = static_cast<ArrayTy*>(n);
 			Type* ty = TENV.Look(at->type);
 			if (ty == nullptr)
+			{
 				reportErr("type %s not defined!", at->type.c_str());
+				goto TRANS_TY_ERR;
+			}
 			return new (C) ArrayType(ty);
 		}
 			break;
@@ -204,6 +565,8 @@ namespace tiger {
 			assert(0);
 			break;
 		}
+
+TRANS_TY_ERR:
 		return nullptr;
 	}
 
@@ -250,7 +613,7 @@ namespace tiger {
 		auto vAccess = curLevel->AllocLocal(vardec->escape);
 		auto entry = new(C) VarEntry;
 		entry->access = vAccess;
-		entry->type = expty.second;
+		entry->type = ty;
 		VENV.Enter(vardec->name, entry);
 
 		//code gen
