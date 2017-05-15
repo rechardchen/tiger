@@ -44,24 +44,111 @@ namespace tiger {
 
 	class TrRelCx : public TrCx {
 	public:
-		TrRelCx(TrRelOp op, TrExp* lhs, TrExp* rhs) :OP(op), lhs(lhs), rhs(rhs) {}
+		TrRelCx(TrRelOp op, TrExp* lhs, TrExp* rhs, BumpPtrAllocator& C) 
+			:OP(op), lhs(lhs), rhs(rhs),C(C) {}
 
-		virtual TStm* unCx(Label t, Label f) override;
+		virtual TStm* unCx(Label t, Label f) override {
+			static const T_relOp OP_MAP[] = { T_eq, T_ne, T_lt, T_gt, T_le, T_ge };
+			return new(C)TCjump(OP_MAP[OP], lhs->unEx(), rhs->unEx(), t, f);
+		}
 	protected:
 		TrRelOp OP;
 		TrExp *lhs, *rhs;
+		BumpPtrAllocator& C;
 	};
 	
 	class TrLogicCx : public TrCx {
 	public:
-		TrLogicCx(TrLogicOp op, TrExp* lhs, TrExp* rhs) :OP(op), lhs(lhs), rhs(rhs) {}
+		TrLogicCx(TrLogicOp op, TrExp* lhs, TrExp* rhs, BumpPtrAllocator& C) 
+			:OP(op), lhs(lhs), rhs(rhs),C(C) {}
 
-		virtual TStm* unCx(Label t, Label f) override;
+		virtual TStm* unCx(Label t, Label f) override {
+			auto label = temp::newLabel();
+			TStm* labDef = new(C)TLabel(label);
+			TStm* left, *right;
+			if (OP == Tr_LogicAnd) { //AND
+				left = lhs->unCx(label, f);
+				right = rhs->unCx(t, f);
+			}
+			else { //OR
+				left = lhs->unCx(t, label);
+				right = rhs->unCx(t, f);
+			}
+			return new(C)TSeq(
+				new(C)TSeq(left, labDef),
+				right
+			);
+		}
 	protected:
 		TrLogicOp OP;
 		TrExp *lhs, *rhs;
+		BumpPtrAllocator& C;
 	};
 	
+	class TrIf : public TrCx {
+	public:
+		TrIf(TrExp* test, TrExp* then, TrExp* elsee, BumpPtrAllocator& C)
+			: test(test), then(then), elsee(elsee), C(C) {}
+		
+		virtual TExp* unEx() override {
+			assert(elsee != nullptr);
+			auto testExp = test->unEx();
+			//optimize
+			if (testExp->type == T_Const) {
+				if (static_cast<TConst*>(testExp)->cv == 0)
+					return elsee->unEx();
+				else
+					return then->unEx();
+			}
+			auto reg = temp::newTemp();
+			auto tlabel = temp::newLabel(), flabel = temp::newLabel();
+			return new(C)TEseq(
+				new(C)TSeq(
+					new(C)TCjump(T_ne, new(C)TConst(0), testExp, tlabel, flabel),
+					new(C)TSeq(
+						new(C)TLabel(tlabel),
+						new(C)TSeq(
+							new(C)TMove(new(C)TTemp(reg), then->unEx()),
+							new(C)TSeq(
+								new(C)TLabel(flabel),
+								new(C)TMove(new(C)TTemp(reg), elsee->unEx())
+							)
+						)
+					)
+				),
+				new(C)TTemp(reg)
+			);
+		}
+		virtual TStm* unNx() override {
+			auto testExp = test->unEx();
+			auto thenStm = then->unNx();
+			auto elseStm = elsee ? elsee->unNx() : new(C)TEval(new(C)TConst(0));
+
+			if (testExp->type == T_Const) {
+				if (static_cast<TConst*>(testExp)->cv == 0)
+					return elseStm;
+				else
+					return thenStm;
+			}
+			auto tlabel = temp::newLabel(), flabel = temp::newLabel(), endlabel = temp::newLabel();
+			return new(C)TSeq(
+				new(C)TCjump(T_ne, new(C)TConst(0), testExp, tlabel, flabel),
+				new(C)TSeq(
+					new(C)TLabel(tlabel),
+					new(C)TSeq(
+						thenStm,
+						new(C)TSeq(
+							new(C)TJump()
+						)
+					)
+				)
+			);
+		}
+		virtual TStm* unCx(Label t, Label f) override;
+	protected:
+		TrExp* test, *then, *elsee;
+		BumpPtrAllocator& C;
+	};
 
 	Translate::Translate(BumpPtrAllocator& allocator)
 		: C(allocator)
@@ -310,36 +397,25 @@ namespace tiger {
 		}));
 	}
 
-	tiger::TrExp* Translate::TransRelOp(TrRelOp op, TrExp* lhs, TrExp* rhs, bool strOprand)
-	{
-		//static const T_relOp OP_MAP[] = { T_eq, T_ne, T_lt, T_gt, T_le, T_ge };
-		/*TCjump* cj;
-		if (strOprand) {
-			cj = new(C)TCjump(OP_MAP[op],
-				ExternelCall("compareStr", { lhs->unEx(), rhs->unEx() }),
-				new(C)TConst(0));
+	tiger::TrExp* Translate::TransRelOp(TrRelOp op, TrExp* lhs, TrExp* rhs, bool strOprand) {
+		if (!strOprand) {
+			return new(C)TrRelCx(op, lhs, rhs, C);
 		}
 		else {
-			cj = new(C)TCjump(OP_MAP[op], lhs->unEx(), rhs->unEx());
+			return new(C)TrRelCx(op, 
+				new(C)TrEx(ExternelCall("compareStr", { lhs->unEx(), rhs->unEx() })),
+				new(C)TrEx(new(C)TConst(0)),C
+			);
 		}
-		
-		return new(C)TrCx(cj, { &cj->t }, { &cj->f });*/
-		return new(C)TrRelCx(op, lhs, rhs);
 	}
 
-	tiger::TrExp* Translate::TransLogicOp(TrLogicOp op, TrExp* lhs, TrExp* rhs)
-	{
-		/*auto L = temp::newLabel();
-		TStm *e1, *e2;
-		std::vector<Label*> truelist, falselist;
-		if (op == Tr_LogicAnd) {
-			e1 = lhs->unCx(&L, nullptr);
-			truelist = 
-		}
-		else {
+	tiger::TrExp* Translate::TransLogicOp(TrLogicOp op, TrExp* lhs, TrExp* rhs) {
+		return new(C)TrLogicCx(op, lhs, rhs, C);
+	}
 
-		}*/
-		return new(C)TrLogicCx(op, lhs, rhs);
+	TrExp* Translate::TransIf(TrExp* test, TrExp* then, TrExp* elsee)
+	{
+		return new(C)TrIf(test, then, elsee, C);
 	}
 
 	/*TrExp* Translate::TransFor(TrExp* lo, TrExp* hi, TrExp* body)

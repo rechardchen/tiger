@@ -29,7 +29,7 @@ namespace tiger {
 	protected:
 		//only used where we must have the actual type
 		static Type* actualTy(Type* ty);
-		//type-conversion validation
+		//type equality validation
 		static bool ValidateTypeCheck(Type* left, Type* right);
 
 		VarEnv VENV;

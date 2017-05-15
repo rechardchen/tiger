@@ -72,6 +72,7 @@ namespace tiger {
 		TrExp* TransStrConcat(TrExp* lhs, TrExp* rhs);
 		TrExp* TransRelOp(TrRelOp op, TrExp* lhs, TrExp* rhs, bool strOprand=false);
 		TrExp* TransLogicOp(TrLogicOp op, TrExp* lhs, TrExp* rhs);
+		TrExp* TransIf(TrExp* test, TrExp* then, TrExp* elsee);
 		TrExp* TransFor(TrExp* lo, TrExp* hi, TrExp* body);
 		
 	private:

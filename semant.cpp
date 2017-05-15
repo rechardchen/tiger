@@ -333,6 +333,61 @@ namespace tiger {
 		}
 			break;
 
+		case A_If:
+		{
+			auto ix = static_cast<IfExp*>(n);
+			ExpTy test = TransExp(ix->test), then = TransExp(ix->then), elsee;
+			bool hasElse = ix->elsee != nullptr;
+			if (hasElse) elsee = TransExp(ix->elsee);
+			if (test.second == nullptr)
+				goto TRANS_EXP_ERR;
+			if (!VALID_VAR_TYPE(test.second)) {
+				reportErr("test exp type incorrect!");
+				goto TRANS_EXP_ERR;
+			}
+			if (!hasElse) {
+				if (then.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (then.second != VoidType()) {
+					reportErr("if without else must have type void!");
+					goto TRANS_EXP_ERR;
+				}
+
+				ret.second = VoidType();
+				ret.first = Translator->TransIf(test.first, then.first, nullptr);
+			}
+			else {
+				if (then.second == nullptr || elsee.second == nullptr)
+					goto TRANS_EXP_ERR;
+
+				if (!ValidateTypeCheck(then.second, elsee.second)) {
+					reportErr("then and else type mismatch!");
+					goto TRANS_EXP_ERR;
+				}
+
+				ret.second = then.second;
+				ret.first = Translator->TransIf(test.first, then.first, elsee.first);
+			}
+		}
+			break;
+
+		case A_While:
+		{
+
+		}
+			break;
+
+		case A_For:
+		{
+
+		}
+			break;
+
+		case A_Break:
+			break;
+
+		case A_Let:
+			break;
 		default:
 			assert(0);
 			break;
