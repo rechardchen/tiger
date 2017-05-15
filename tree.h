@@ -94,7 +94,7 @@ namespace tiger {
 	//CJUMP(o, e1, e2, t, f): conditional jump
 	enum T_relOp { T_eq, T_ne, T_lt, T_gt, T_le, T_ge, T_ult, T_ule, T_ugt, T_uge };
 	struct TCjump : public TStm {
-		TCjump(T_relOp op, TExp* e1, TExp* e2, Label t, Label f) :
+		TCjump(T_relOp op, TExp* e1, TExp* e2, Label t="", Label f="") :
 			TStm(T_CJump), op(op), e1(e1), e2(e2), t(t), f(f) {}
 		T_relOp op;
 		TExp *e1, *e2;

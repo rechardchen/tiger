@@ -31,10 +31,35 @@ namespace tiger {
 	public:
 		virtual TExp* unEx() override;
 		virtual TStm* unNx() override;
+	//public:
+	//	//TrCx(TStm* s, const std::vector<Label*>& truelist, const std::vector<Label*>& falselist)
+	//	//	:s(s), truelist(truelist), falselist(falselist) {}
+	//	virtual TExp* unEx() override;
+	//	virtual TStm* unNx() override;
+	//	virtual TStm* unCx(Label* t, Label* f) override;
+	//protected:
+	//	//TStm* s;
+	//	//std::vector<Label*> truelist, falselist;
+	};
+
+	class TrRelCx : public TrCx {
+	public:
+		TrRelCx(TrRelOp op, TrExp* lhs, TrExp* rhs) :OP(op), lhs(lhs), rhs(rhs) {}
+
 		virtual TStm* unCx(Label t, Label f) override;
 	protected:
-		TStm* s;
-		std::vector<Label*> truelist, falselist;
+		TrRelOp OP;
+		TrExp *lhs, *rhs;
+	};
+	
+	class TrLogicCx : public TrCx {
+	public:
+		TrLogicCx(TrLogicOp op, TrExp* lhs, TrExp* rhs) :OP(op), lhs(lhs), rhs(rhs) {}
+
+		virtual TStm* unCx(Label t, Label f) override;
+	protected:
+		TrLogicOp OP;
+		TrExp *lhs, *rhs;
 	};
 	
 
@@ -114,7 +139,7 @@ namespace tiger {
 				}
 			}
 		}
-		else { //TODO: if it is global variable
+		else { //TODO: multi-module if it is global variable
 			assert(0);
 			return nullptr;
 		}
@@ -283,6 +308,38 @@ namespace tiger {
 		return new(C)TrEx(ExternelCall("concatStr", {
 			lhs->unEx(), rhs->unEx()
 		}));
+	}
+
+	tiger::TrExp* Translate::TransRelOp(TrRelOp op, TrExp* lhs, TrExp* rhs, bool strOprand)
+	{
+		//static const T_relOp OP_MAP[] = { T_eq, T_ne, T_lt, T_gt, T_le, T_ge };
+		/*TCjump* cj;
+		if (strOprand) {
+			cj = new(C)TCjump(OP_MAP[op],
+				ExternelCall("compareStr", { lhs->unEx(), rhs->unEx() }),
+				new(C)TConst(0));
+		}
+		else {
+			cj = new(C)TCjump(OP_MAP[op], lhs->unEx(), rhs->unEx());
+		}
+		
+		return new(C)TrCx(cj, { &cj->t }, { &cj->f });*/
+		return new(C)TrRelCx(op, lhs, rhs);
+	}
+
+	tiger::TrExp* Translate::TransLogicOp(TrLogicOp op, TrExp* lhs, TrExp* rhs)
+	{
+		/*auto L = temp::newLabel();
+		TStm *e1, *e2;
+		std::vector<Label*> truelist, falselist;
+		if (op == Tr_LogicAnd) {
+			e1 = lhs->unCx(&L, nullptr);
+			truelist = 
+		}
+		else {
+
+		}*/
+		return new(C)TrLogicCx(op, lhs, rhs);
 	}
 
 	/*TrExp* Translate::TransFor(TrExp* lo, TrExp* hi, TrExp* body)

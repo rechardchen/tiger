@@ -249,6 +249,7 @@ namespace tiger {
 
 			case BinOpExp::OP_SUB:
 			{
+				//TODO: change to two-way check
 				ExpTy expty = TransExp(bx->lhs);
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
@@ -268,6 +269,64 @@ namespace tiger {
 
 				ret.second = IntType();
 				ret.first = Translator->TransBinarySub(lhs, rhs);
+			}
+				break;
+
+			case BinOpExp::OP_EQ:
+			case BinOpExp::OP_NE:
+			case BinOpExp::OP_LT:
+			case BinOpExp::OP_GT:
+			case BinOpExp::OP_LE:
+			case BinOpExp::OP_GE:
+			{
+				ExpTy left = TransExp(bx->lhs), right = TransExp(bx->rhs);
+				if (left.second == nullptr || right.second == nullptr)
+					goto TRANS_EXP_ERR;
+				TrRelOp op = Tr_EQ;
+				switch (bx->op) {
+				case BinOpExp::OP_EQ:op = Tr_EQ; break;
+				case BinOpExp::OP_NE:op = Tr_NE; break;
+				case BinOpExp::OP_LT:op = Tr_LT; break;
+				case BinOpExp::OP_GT:op = Tr_GT; break;
+				case BinOpExp::OP_LE:op = Tr_LE; break;
+				case BinOpExp::OP_GE:op = Tr_GE; break;
+				}
+				if (left.second == IntType() && right.second == IntType()) {
+					ret.second = IntType();
+					ret.first = Translator->TransRelOp(op, left.first, right.first, false);
+				}
+				else if (left.second == StringType() && right.second == StringType()) {
+					ret.second = IntType();
+					ret.first = Translator->TransRelOp(op, left.first, right.first, true);
+				}
+				else {
+					reportErr("invalid rel oprand type!");
+					goto TRANS_EXP_ERR;
+				}
+			}
+				break;
+
+			case BinOpExp::OP_AND:
+			case BinOpExp::OP_OR:
+			{
+				auto left = TransExp(bx->lhs), right = TransExp(bx->rhs);
+				if (left.second == nullptr || right.second == nullptr)
+					goto TRANS_EXP_ERR;
+				if (!VALID_VAR_TYPE(left.second)) {
+					reportErr("invalid logic oprand type");
+					goto TRANS_EXP_ERR;
+				}
+				if (!VALID_VAR_TYPE(right.second)) {
+					reportErr("invalid logic oprand type");
+					goto TRANS_EXP_ERR;
+				}
+
+				ret.second = IntType();
+				ret.first = Translator->TransLogicOp(
+					bx->op == BinOpExp::OP_AND ? Tr_LogicAnd: Tr_LogicOr,
+					left.first,
+					right.first
+					);
 			}
 				break;
 			}

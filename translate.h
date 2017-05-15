@@ -41,6 +41,8 @@ namespace tiger {
 		BumpPtrAllocator& C;
 	};
 
+	enum TrRelOp { Tr_EQ, Tr_NE, Tr_LT, Tr_GT, Tr_LE, Tr_GE };
+	enum TrLogicOp { Tr_LogicAnd, Tr_LogicOr };
 	//TranslationUnit, IR-tree translator
 	class Translate {
 	public:
@@ -68,6 +70,8 @@ namespace tiger {
 		TrExp* TransBinaryDiv(TrExp* lhs, TrExp* rhs);
 		TrExp* TransBinaryAdd(TrExp* lhs, TrExp* rhs);
 		TrExp* TransStrConcat(TrExp* lhs, TrExp* rhs);
+		TrExp* TransRelOp(TrRelOp op, TrExp* lhs, TrExp* rhs, bool strOprand=false);
+		TrExp* TransLogicOp(TrLogicOp op, TrExp* lhs, TrExp* rhs);
 		TrExp* TransFor(TrExp* lo, TrExp* hi, TrExp* body);
 		
 	private:
