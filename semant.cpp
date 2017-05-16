@@ -491,7 +491,7 @@ TRANS_EXP_ERR:
 					//for recursive func
 					auto newLevel = Translator->NewLevel(
 						Translator->CurLevel(),
-						temp::newLabel(),
+						temp::newLabel(), //decouple
 						formalEscape
 					);
 					//register func in outer level
