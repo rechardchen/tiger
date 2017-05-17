@@ -54,6 +54,7 @@ namespace tiger {
 		void	 ExitLevel(TrExp* body);
 
 		TrExp* CombineStm(TrExp* s1, TrExp* s2);
+		TrExp* CombineESeq(TrExp* s, TrExp* e);
 
 		TrExp* TransSimpleVar(TrAccess);
 		TrExp* TransFieldVar(TrExp* var, RecordType* type, Symbol field);
@@ -73,7 +74,9 @@ namespace tiger {
 		TrExp* TransRelOp(TrRelOp op, TrExp* lhs, TrExp* rhs, bool strOprand=false);
 		TrExp* TransLogicOp(TrLogicOp op, TrExp* lhs, TrExp* rhs);
 		TrExp* TransIf(TrExp* test, TrExp* then, TrExp* elsee);
-		TrExp* TransFor(TrExp* lo, TrExp* hi, TrExp* body);
+		TrExp* TransWhile(TrExp* test, TrExp* body, Label end);
+		TrExp* TransFor(TrAccess i, TrExp* lo, TrExp* hi, TrExp* body, Label end);
+		TrExp* TransBreak(Label);
 		
 	private:
 		TrLevel* InitLevel, *CurrentLevel;

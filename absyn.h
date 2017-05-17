@@ -167,14 +167,14 @@ namespace tiger
 		VarDec() :BaseASTNode(A_VarDec) {}
 		std::string name, type;
 		ASTNode init=nullptr;
-		bool escape = false;
+		bool escape = true;
 	};
 	struct Field : public BaseASTNode
 	{
 		Field() : BaseASTNode(A_Field) {}
 		std::string name;
 		std::string type;
-		bool escape = false;
+		bool escape = true;
 	};
 	struct TyFields : public BaseASTNode
 	{

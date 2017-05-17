@@ -28,6 +28,9 @@ namespace tiger
 		inline operator std::string() const {
 			return mName ? std::string(mName) : std::string("");
 		}
+		inline operator bool() const {
+			return mName != nullptr;
+		}
 		
 	public:
 		struct Hasher {

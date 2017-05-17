@@ -256,13 +256,40 @@ namespace tiger {
 
 	TrExp* Translate::CombineStm(TrExp* s1, TrExp* s2)
 	{
-		assert(s1 != nullptr && s2 != nullptr);
-		return new(C)TrNx(
-			new(C)TSeq(
-				s1->unNx(), 
-				s2->unNx()
-			), C
-		);
+		if (s1 == nullptr && s2 == nullptr) {
+			return nullptr;
+		}
+		else if (s1 == nullptr) {
+			return s2;
+		}
+		else if (s2 == nullptr) {
+			return s1;
+		}
+		else {
+			return new(C)TrNx(new(C)TSeq(s1->unNx(), s2->unNx()),C);
+		}
+	}
+
+	TrExp* Translate::CombineESeq(TrExp* s, TrExp* e)
+	{
+		if (s == nullptr && e == nullptr) {
+			return new(C)TrEx(new(C)TConst(0),C);
+		}
+		else if (s == nullptr) {
+			return e;
+		}
+		else if (e == nullptr) {
+			return new(C)TrEx(new(C)TEseq(
+				s->unNx(),
+				new(C)TConst(0)
+			), C);
+		}
+		else {
+			return new(C)TrEx(new(C)TEseq(
+				s->unNx(),
+				e->unEx()
+			), C);
+		}
 	}
 
 	TrExp* Translate::TransSimpleVar(TrAccess vAccess)
@@ -396,6 +423,7 @@ namespace tiger {
 
 	TrExp* Translate::TransCall(Label f, const std::vector<TrExp*>& exps)
 	{
+		//TODO: set static link
 		std::vector<TExp*> params;
 		for (auto e : exps) params.push_back(e->unEx());
 		return new(C)TrEx(new(C)TCall(
@@ -496,9 +524,51 @@ namespace tiger {
 		return new(C)TrIf(test, then, elsee, C);
 	}
 
-	/*TrExp* Translate::TransFor(TrExp* lo, TrExp* hi, TrExp* body)
+	TrExp* Translate::TransWhile(TrExp* test, TrExp* body, Label end)
 	{
-
+		auto begin = temp::newLabel();
+		auto tlabel = temp::newLabel();
+		return new(C)TrNx(
+			new(C)TSeq(
+				new(C)TLabel(begin),
+				new(C)TSeq(
+					test->unCx(tlabel,end),
+					new(C)TSeq(
+						new(C)TLabel(tlabel),
+						new(C)TSeq(
+							body->unNx(),
+							new(C)TSeq(
+								new(C)TJump(begin, { begin }),
+								new(C)TLabel(end)
+							)
+						)
+					)
+				)
+			), C
+		);
 	}
-*/
+
+	TrExp* Translate::TransBreak(Label loopExit)
+	{
+		return new(C)TrNx(new(C)TJump(loopExit, { loopExit }), C);
+	}
+
+	TrExp* Translate::TransFor(TrAccess i, TrExp* lo, TrExp* hi, TrExp* body, Label end)
+	{
+		auto counter = TransSimpleVar(i);
+		auto hiReg = temp::newTemp();
+		auto init = new(C)TSeq(
+			new(C)TMove(counter->unEx(), lo->unEx()),
+			new(C)TMove(new(C)TTemp(hiReg), hi->unEx())
+		);
+		auto test = TransRelOp(Tr_LE, counter,
+			new(C)TrEx(new(C)TTemp(hiReg), C));
+		auto forbody = CombineStm(body,
+			new(C)TrNx(
+				new(C)TMove(counter->unEx(), 
+					new(C)TBinOp(T_plus, counter->unEx(), new(C)TConst(1))
+			),C));
+		return CombineStm(new(C)TrNx(init, C),
+			TransWhile(test, forbody, end));
+	}
 }

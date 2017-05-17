@@ -3,6 +3,7 @@
 #include "env.h"
 #include "absyn.h"
 #include "allocator.h"
+#include "temp.h"
 #include <utility>
 
 namespace tiger {
@@ -20,7 +21,8 @@ namespace tiger {
 		Semant(BumpPtrAllocator& allocator);
 
 		//make sure if ExpTy returned is successful, then ty is actual typed
-		ExpTy TransExp(ASTNode); //expty.second null if trans failed, else is actualed type
+		//loopExit is the outer loop to break
+		ExpTy TransExp(ASTNode,Label=""); //expty.second null if trans failed, else is actualed type
 		ExpTy TransDecs(ASTNode);//Declaration list
 		ExpTy TransVar(ASTNode);
 		Type* TransTy(ASTNode);

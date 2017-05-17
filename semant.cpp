@@ -2,6 +2,8 @@
 #include "type.h"
 #include "translate.h"
 
+//TODO:
+//error recovery policy:1. add position info in reportErr 2.report error like gcc
 namespace tiger {
 
 #define VALID_VAR_TYPE(ty) ((ty)->tt != Ty_Void)
@@ -14,8 +16,8 @@ namespace tiger {
 	{
 		Translator = new (C) Translate(C);
 	}
-
-	Semant::ExpTy Semant::TransExp(ASTNode n)
+	
+	Semant::ExpTy Semant::TransExp(ASTNode n,Label loopExit)
 	{
 		ExpTy ret;
 		switch (n->type) {
@@ -47,7 +49,7 @@ namespace tiger {
 			auto ax = static_cast<ArrayExp*>(n);
 			auto ty = TENV.Look(ax->type);
 			if (ty) {
-				auto expty = TransExp(ax->init);
+				auto expty = TransExp(ax->init); //break can not in array init exp
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (!ValidateTypeCheck(ty, expty.second)) {
@@ -55,7 +57,7 @@ namespace tiger {
 					goto TRANS_EXP_ERR;
 				}
 				auto initExp = expty.first;
-				expty = TransExp(ax->size);
+				expty = TransExp(ax->size); //break can not in array size exp
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
@@ -336,9 +338,9 @@ namespace tiger {
 		case A_If:
 		{
 			auto ix = static_cast<IfExp*>(n);
-			ExpTy test = TransExp(ix->test), then = TransExp(ix->then), elsee;
+			ExpTy test = TransExp(ix->test), then = TransExp(ix->then, loopExit), elsee;//breakexp can in then
 			bool hasElse = ix->elsee != nullptr;
-			if (hasElse) elsee = TransExp(ix->elsee);
+			if (hasElse) elsee = TransExp(ix->elsee, loopExit);
 			if (test.second == nullptr)
 				goto TRANS_EXP_ERR;
 			if (!VALID_VAR_TYPE(test.second)) {
@@ -373,21 +375,129 @@ namespace tiger {
 
 		case A_While:
 		{
+			auto wx = static_cast<WhileExp*>(n);
+			
+			Label end = temp::newLabel(); //TODO: refactor
+			ExpTy test = TransExp(wx->test), body = TransExp(wx->body, end);
+			if (test.second == nullptr || body.second == nullptr)
+				goto TRANS_EXP_ERR;
+			if (!VALID_VAR_TYPE(test.second)) {
+				reportErr("test oprand type invalid");
+				goto TRANS_EXP_ERR;
+			}
 
+			ret.second = VoidType();
+			ret.first = Translator->TransWhile(test.first, body.first, end);
 		}
 			break;
 
 		case A_For:
 		{
+			auto fx = static_cast<ForExp*>(n);
+			
+			auto low = TransExp(fx->lo), high = TransExp(fx->hi);
+			if (low.second == nullptr || high.second == nullptr)
+				goto TRANS_EXP_ERR;
+			if (low.second != IntType() || high.second != IntType()) {
+				if (low.second != IntType())
+					reportErr("invalid oprand type!");
+				if (high.second != IntType())
+					reportErr("invalid oprand type!");
+				goto TRANS_EXP_ERR;
+			}
+			VENV.BeginScope();
+			auto ventry = new(C)VarEntry;
+			ventry->access = Translator->CurLevel()->AllocLocal(true); //TODO: escape analysis
+			ventry->type = IntType();
+			VENV.Enter(fx->var, ventry);
 
+			Label end = temp::newLabel();
+			auto body = TransExp(fx->body, end);
+			if (body.second == nullptr) {
+				VENV.EndScope();
+				goto TRANS_EXP_ERR;
+			}
+			
+			ret.second = VoidType();
+			ret.first = Translator->TransFor(ventry->access, low.first, 
+				high.first, body.first, end);
+
+			VENV.EndScope();
 		}
 			break;
 
 		case A_Break:
+		{
+			if (!loopExit) {
+				reportErr("break exp not in a loop!");
+				goto TRANS_EXP_ERR;
+			}
+
+			ret.second = VoidType();
+			ret.first = Translator->TransBreak(loopExit);
+		}
 			break;
 
 		case A_Let:
+		{
+			auto lx = static_cast<LetExp*>(n);
+
+			VENV.BeginScope();
+			TENV.BeginScope();
+			FENV.BeginScope();
+
+			auto decs = TransDecs(lx->decs), body = TransExp(lx->exps, loopExit);
+			if (decs.second == nullptr || body.second == nullptr) {
+				FENV.EndScope();
+				TENV.EndScope();
+				VENV.EndScope();
+				goto TRANS_EXP_ERR;
+			}
+
+			ret.second = body.second;
+			ret.first = Translator->CombineESeq(decs.first, body.first);
+			FENV.EndScope();
+			TENV.EndScope();
+			VENV.EndScope();
+		}
 			break;
+
+		case A_ExpList:
+		{
+			auto ex = static_cast<ExpList*>(n);
+			Type*ty = VoidType();
+			for (auto exp : ex->exps) {
+				auto expty = TransExp(exp, loopExit);
+				if (expty.second == nullptr) ty = nullptr;
+				else ty = expty.second;
+
+				exps
+			}
+			if (ty != nullptr) {
+				ret.second = ty;
+				ret.first = nullptr;
+
+			}
+		}
+			break;
+
+		case A_Assign:
+		{
+			auto ax = static_cast<AssignExp*>(n);
+			auto var = TransVar(ax->var);
+			auto exp = TransExp(ax->exp);
+			if (var.second == nullptr || exp.second == nullptr) {
+				goto TRANS_EXP_ERR;
+			}
+			if (!ValidateTypeCheck(var.second, exp.second)) {
+				reportErr("type mismatch!");
+				goto TRANS_EXP_ERR;
+			}
+			ret.second = VoidType();
+			ret.first = Translator->TransAssign(var.first, exp.first);
+		}
+			break;
+
 		default:
 			assert(0);
 			break;
@@ -399,10 +509,11 @@ TRANS_EXP_ERR:
 
 	Semant::ExpTy Semant::TransDecs(ASTNode n)
 	{
-		//TODO: handle class definitions
+		//TODO: object-oriented features
 		assert(n->type == A_DeclareList);
 		DeclareList* dl = static_cast<DeclareList*>(n);
 		TrExp* initExp = nullptr;
+		Type* decType = VoidType();
 
 		//first pass only process type headers
 		for (auto dec : dl->decs) {
@@ -428,31 +539,45 @@ TRANS_EXP_ERR:
 				auto ty = TENV.Look(typeName);
 				assert(ty->tt == Ty_Name);
 				auto nt = static_cast<NameType*>(ty);
-				nt->type = TransTy(tydec);
-
-				//check: recursive define and incomplete define
-				Type* realTy = nt->type;
-				while (realTy != nt && realTy->tt == Ty_Name) {
-					auto realNT = static_cast<NameType*>(realTy);
-					if (realNT->type == nullptr) {
-						reportErr("type %s has an incomplete definition!", tydec->name.c_str());
-						//TODO: pop error type
-						break;
+				auto type = TransTy(tydec);
+				if (type) {
+					nt->type = type;
+					//check: recursive define and incomplete define
+					Type* realTy = nt->type;
+					while (realTy != nt && realTy->tt == Ty_Name) {
+						auto realNT = static_cast<NameType*>(realTy);
+						if (realNT->type == nullptr) {
+							reportErr("type %s has an incomplete definition!", tydec->name.c_str());
+							TENV.Pop(typeName);
+							decType = nullptr;
+							break;
+						}
+						else
+							realTy = realNT->type;
 					}
-					else
-						realTy = realNT->type;
+					if (realTy == nt) {
+						reportErr("type %s has a recursive definition!", tydec->name.c_str());
+						TENV.Pop(typeName);
+						decType = nullptr;
+					}
 				}
-				if (realTy == nt)
-					reportErr("type %s has a recursive definition!", tydec->name.c_str());
 			}
-			else if (dec->type == A_VarDec) {
+		}
+
+		//when type info process finished,process var dec and func decs
+		for (auto dec : dl->decs) {
+			if (dec->type == A_VarDec) {
 				auto vardec = static_cast<VarDec*>(dec);
 				auto expty = TransVarDec(vardec);
 				if (expty.second) {
-					if (initExp == nullptr) 
+					/*if (initExp == nullptr)
 						initExp = expty.first;
-					else 
-						initExp = Translator->CombineStm(initExp, expty.first);
+					else
+						initExp = Translator->CombineStm(initExp, expty.first);*/
+					initExp = Translator->CombineStm(initExp, expty.first);
+				}
+				else {
+					decType = nullptr;
 				}
 			}
 			else if (dec->type == A_FuncDec) {
@@ -474,9 +599,9 @@ TRANS_EXP_ERR:
 				std::vector<Type*> formalTypes;
 				std::vector<bool> formalEscape;
 				for (auto para : fundec->params->fields) {
-					Type* ty = TENV.Look(para->name);
+					Type* ty = TENV.Look(para->type);
 					if (!ty) {
-						reportErr("para %s has invalid type %s", para->name.c_str(),
+						reportErr("param %s has invalid type %s", para->name.c_str(),
 							para->type.c_str());
 						validParam = false;
 						break;
@@ -504,7 +629,7 @@ TRANS_EXP_ERR:
 					TENV.BeginScope();
 					VENV.BeginScope();
 					FENV.BeginScope();
-					
+
 					for (size_t i = 0; i < formalName.size(); ++i) {
 						auto entry = new(C)VarEntry;
 						entry->access = newLevel->Argument(i);
@@ -518,20 +643,29 @@ TRANS_EXP_ERR:
 					VENV.EndScope();
 					TENV.EndScope();
 					//check return type
-					if (expty.second == NULL ||
-						!ValidateTypeCheck(retType, expty.second)) {
-						reportErr("return type mismatch!");
+					if (expty.second == nullptr) {
 						FENV.Pop(fundec->name);
 						Translator->ExitLevel(nullptr);
 					}
 					else {
-						Translator->ExitLevel(expty.first);
+						if (!ValidateTypeCheck(retType, expty.second)) {
+							reportErr("return type mismatch!");
+							FENV.Pop(fundec->name);
+							Translator->ExitLevel(nullptr);
+							decType = nullptr;
+						}
+						else {
+							Translator->ExitLevel(expty.first);
+						}
 					}
+				}
+				else {
+					decType = nullptr;
 				}
 			}
 		}
 
-		return ExpTy(initExp, nullptr);
+		return ExpTy(initExp, decType);
 	}
 
 	Semant::ExpTy Semant::TransVar(ASTNode n)
@@ -691,6 +825,8 @@ TRANS_TY_ERR:
 	}
 
 	Semant::ExpTy Semant::TransVarDec(VarDec* vardec) {
+		//TODO: can not handle following recursive format
+		//var a := recType{ptr=a}
 		Type* ty = nullptr;
 		TrExp* exp = nullptr;
 		ExpTy ret(nullptr, nullptr);

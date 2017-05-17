@@ -36,6 +36,7 @@ exp
 	| 'let' decs 'in' exps 'end' 						#LetExp
 	;
 
+// Can not handle lvalue such as F(x,y), todo add this
 lvalue
 	: ID 												#SimpleVar
 	| lvalue '.' ID 									#FieldVar
