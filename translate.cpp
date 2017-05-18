@@ -241,14 +241,14 @@ namespace tiger {
 		level->Name = name;
 		level->Parent = parent;
 		level->Formals = formals;
-		//TODO
+		//TODO: set up frame
 
 		return level;
 	}
 
 	void Translate::ExitLevel(TrExp* body)
 	{
-		//TODO
+		//TODO: record frame fragment
 		TrLevel* curLevel = CurLevel();
 		CurrentLevel = curLevel->Parent;
 
@@ -256,23 +256,15 @@ namespace tiger {
 
 	TrExp* Translate::CombineStm(TrExp* s1, TrExp* s2)
 	{
-		if (s1 == nullptr && s2 == nullptr) {
-			return nullptr;
-		}
-		else if (s1 == nullptr) {
-			return s2;
-		}
-		else if (s2 == nullptr) {
-			return s1;
-		}
-		else {
-			return new(C)TrNx(new(C)TSeq(s1->unNx(), s2->unNx()),C);
-		}
+		assert(s1 != nullptr && s2 != nullptr);
+		return new(C)TrNx(new(C)TSeq(s1->unNx(), s2->unNx()), C);
 	}
 
 	TrExp* Translate::CombineESeq(TrExp* s, TrExp* e)
 	{
-		if (s == nullptr && e == nullptr) {
+		assert(s != nullptr && e != nullptr);
+		return new(C)TrEx(new(C)TEseq(s->unNx(), e->unEx()), C);
+		/*if (s == nullptr && e == nullptr) {
 			return new(C)TrEx(new(C)TConst(0),C);
 		}
 		else if (s == nullptr) {
@@ -289,7 +281,7 @@ namespace tiger {
 				s->unNx(),
 				e->unEx()
 			), C);
-		}
+		}*/
 	}
 
 	TrExp* Translate::TransSimpleVar(TrAccess vAccess)
