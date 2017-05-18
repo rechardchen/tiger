@@ -77,6 +77,7 @@ namespace tiger {
 		TrExp* TransWhile(TrExp* test, TrExp* body, Label end);
 		TrExp* TransFor(TrAccess i, TrExp* lo, TrExp* hi, TrExp* body, Label end);
 		TrExp* TransBreak(Label);
+		TrExp* TransExplist(const std::vector<TrExp*>& exps);
 		
 	private:
 		TrLevel* InitLevel, *CurrentLevel;

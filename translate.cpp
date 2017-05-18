@@ -553,6 +553,24 @@ namespace tiger {
 		return new(C)TrNx(new(C)TJump(loopExit, { loopExit }), C);
 	}
 
+	tiger::TrExp* Translate::TransExplist(const std::vector<TrExp*>& exps)
+	{
+		if (exps.empty()) {
+			return new(C)TrEx(new(C)TConst(0), C);
+		}
+		else if (exps.size() == 1) {
+			return exps[0];
+		}
+		else {
+			auto size = exps.size();
+			auto stm = exps[0]->unNx();
+			for (size_t i = 1; i < size -1; ++i) {
+				stm = new(C)TSeq(stm, exps[i]->unNx());
+			}
+			return new(C)TrEx(new(C)TEseq(stm, exps.back()->unEx()), C);
+		}
+	}
+
 	TrExp* Translate::TransFor(TrAccess i, TrExp* lo, TrExp* hi, TrExp* body, Label end)
 	{
 		auto counter = TransSimpleVar(i);

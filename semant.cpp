@@ -426,6 +426,8 @@ namespace tiger {
 		}
 			break;
 
+		//because in some cases, we do not need break exp, for example var a := exp.
+		//so we dont pass loopexit into transExp(exp)
 		case A_Break:
 		{
 			if (!loopExit) {
@@ -466,17 +468,17 @@ namespace tiger {
 		{
 			auto ex = static_cast<ExpList*>(n);
 			Type*ty = VoidType();
+			std::vector<TrExp*> exps;
 			for (auto exp : ex->exps) {
 				auto expty = TransExp(exp, loopExit);
 				if (expty.second == nullptr) ty = nullptr;
 				else ty = expty.second;
 
-				exps
+				exps.push_back(expty.first);
 			}
 			if (ty != nullptr) {
 				ret.second = ty;
-				ret.first = nullptr;
-
+				ret.first = Translator->TransExplist(exps);
 			}
 		}
 			break;
