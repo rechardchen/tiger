@@ -27,6 +27,7 @@
     <ClCompile Include="..\translate.cpp" />
     <ClCompile Include="..\semant.cpp" />
     <ClCompile Include="..\env.cpp" />
+    <ClCompile Include="..\x86masmframe.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\grammar\tigerBaseVisitor.h">

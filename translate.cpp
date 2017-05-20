@@ -231,17 +231,20 @@ namespace tiger {
 	Translate::Translate(BumpPtrAllocator& allocator)
 		: C(allocator)
 	{
-		InitLevel = new (C)TrLevel(C);
+		InitLevel = new (C)TrLevel;
 		CurrentLevel = InitLevel;
 	}
 
 	TrLevel* Translate::NewLevel(TrLevel* parent, Label name, const std::vector<bool>& formals)
 	{
-		auto level = new (C) TrLevel(C);
+		auto level = new (C) TrLevel;
 		level->Name = name;
 		level->Parent = parent;
 		level->Formals = formals;
-		//TODO: set up frame
+		
+		std::vector<bool> frameArgs(formals);
+		frameArgs.insert(frameArgs.begin(), true); //static link always escape
+		level->Frame = FrameCreator(frameArgs);
 
 		return level;
 	}
@@ -288,7 +291,7 @@ namespace tiger {
 	{
 		if (vAccess.level != InitLevel) { //not global variable
 			if (vAccess.access.t == FAccess::InReg) { //in register
-				return new (C) TrEx(new(C)TTemp(vAccess.access.u.reg), C);
+				return new (C) TrEx(new(C)TTemp(vAccess.access.reg), C);
 			}
 			else { // in frame
 				auto level = CurLevel();
@@ -296,28 +299,28 @@ namespace tiger {
 					return new(C)TrEx(new(C)TMem(
 						new(C)TBinOp(
 							T_plus,
-							new(C)TTemp(level->Frame->FramePtr().u.reg),
-							new(C)TConst(vAccess.access.u.offset)
+							new(C)TTemp(level->Frame->FramePtr().reg),
+							new(C)TConst(vAccess.access.offset)
 						)
 					),C);
 				}
 				else { //upvalue, use static link to search
 					TExp* start = new(C)TMem(new(C)TBinOp(T_plus,
-						new(C)TTemp(level->Frame->FramePtr().u.reg),
-						new(C)TConst(level->Frame->StaticLink().u.offset)
+						new(C)TTemp(level->Frame->FramePtr().reg),
+						new(C)TConst(level->Frame->Argument(0).offset) //Argument(0) is static-link
 					));
 					level = level->Parent;
 					while (level != vAccess.level) {
 						start = new(C)TMem(new(C)TBinOp(T_plus,
 							start,
-							new(C)TConst(level->Frame->StaticLink().u.offset)
+							new(C)TConst(level->Frame->Argument(0).offset)
 						));
 						level = level->Parent;
 					}
 					//now we have reached the level
 					start = new(C)TMem(new(C)TBinOp(T_plus,
 						start,
-						new(C)TConst(vAccess.access.u.offset)
+						new(C)TConst(vAccess.access.offset)
 					));
 					return new(C)TrEx(start,C);
 				}
@@ -413,15 +416,43 @@ namespace tiger {
 		return new(C)TrEx(new(C)TEseq(init, new(C)TTemp(regRec)),C);
 	}
 
-	TrExp* Translate::TransCall(Label f, const std::vector<TrExp*>& exps)
+	TrExp* Translate::TransCall(Label f, const std::vector<TrExp*>& exps, TrLevel* callee)
 	{
-		//TODO: set static link
 		std::vector<TExp*> params;
+		//TODO: use a external-flag to mark c functions
+		if (callee->Parent != nullptr) {
+			//not external call
+			//set static link
+			TExp* sl;
+			if (CurrentLevel == callee->Parent) {
+				sl = new(C)TTemp(CurrentLevel->Frame->FramePtr().reg);
+			}
+			else {
+				TExp* start = new(C)TMem(new(C)TBinOp(T_plus,
+					new(C)TTemp(CurrentLevel->Frame->FramePtr().reg),
+					new(C)TConst(CurrentLevel->Frame->Argument(0).offset)
+				));
+				auto level = CurrentLevel->Parent;
+				while (level != nullptr && level != callee->Parent) {
+					start = new(C)TMem(new(C)TBinOp(T_plus,
+						start,
+						new(C)TConst(level->Frame->Argument(0).offset)
+					));
+				}
+				assert(level == callee->Parent);
+			}
+			params.push_back(sl);
+		}
+
 		for (auto e : exps) params.push_back(e->unEx());
-		return new(C)TrEx(new(C)TCall(
-			new(C)TName(f),
-			params
-		),C);
+
+		if (callee->Parent != nullptr)
+			return new(C)TrEx(new(C)TCall(
+				new(C)TName(f),
+				params
+			), C);
+		else
+			return new(C)TrEx(ExternelCall(f, params),C);
 	}
 
 	TrExp* Translate::TransAssign(TrExp* target, TrExp* exp) {

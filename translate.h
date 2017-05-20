@@ -3,6 +3,7 @@
 #include "allocator.h"
 #include "frame.h"
 #include <vector>
+#include <functional>
 
 namespace tiger {
 	struct RecordType;
@@ -26,19 +27,25 @@ namespace tiger {
 
 	class TrLevel {
 	public:
-		//TODO: delete this member, use a TU-Context instead
-		TrLevel(BumpPtrAllocator& context);
-		TrAccess AllocLocal(bool escape);
-		TrAccess Argument(int i);
+		//TrLevel(BumpPtrAllocator& context) :C(context) {}
+		TrAccess AllocLocal(bool escape) {
+			TrAccess access;
+			access.level = this;
+			access.access = Frame->AllocLocal(escape);
+			return access;
+		}
+		TrAccess Argument(int i) {
+			TrAccess access;
+			access.level = this;
+			access.access = Frame->Argument(i + 1);
+			return access;
+		}
 
 	public:
-		TrLevel* Parent = nullptr;
-		Frame* Frame = nullptr;
+		TrLevel* Parent = nullptr;//parent == null means global scope
+		Frame* Frame = nullptr;//Frame == null means not a function
 		Label Name;
 		std::vector<bool> Formals;
-
-	protected:
-		BumpPtrAllocator& C;
 	};
 
 	enum TrRelOp { Tr_EQ, Tr_NE, Tr_LT, Tr_GT, Tr_LE, Tr_GE };
@@ -64,7 +71,7 @@ namespace tiger {
 		TrExp* TransStrConst(Symbol s);
 		TrExp* TransArrayInit(TrExp* size, TrExp* init); //A[x] = init
 		TrExp* TransRecordInit(RecordType* type, const std::vector<Symbol>& fnames, const std::vector<TrExp*>& fexps);
-		TrExp* TransCall(Label f, const std::vector<TrExp*>&);
+		TrExp* TransCall(Label f, const std::vector<TrExp*>&, TrLevel* callee);
 		TrExp* TransAssign(TrExp* target, TrExp* exp);
 		TrExp* TransBinarySub(TrExp* lhs, TrExp* rhs);
 		TrExp* TransBinaryMul(TrExp* lhs, TrExp* rhs);
@@ -87,6 +94,8 @@ namespace tiger {
 		std::vector<Symbol> StringFrags;
 		std::vector<std::pair<TStm*, Frame*>> FuncFrags;
 
+		//frame-specific
 		FExternalCall ExternelCall;
+		std::function<Frame*(const std::vector<bool>&)> FrameCreator;
 	};
 }

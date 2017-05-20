@@ -143,7 +143,7 @@ namespace tiger {
 				exps.push_back(expty.first);
 			}
 			ret.second = actualTy(entry->resultType);
-			ret.first = Translator->TransCall(entry->level->Name, exps);
+			ret.first = Translator->TransCall(entry->level->Name, exps, entry->level);
 		}
 			break;
 

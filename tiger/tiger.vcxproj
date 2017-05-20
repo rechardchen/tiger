@@ -32,6 +32,7 @@
     <ClCompile Include="..\temp.cpp" />
     <ClCompile Include="..\translate.cpp" />
     <ClCompile Include="..\type.cpp" />
+    <ClCompile Include="..\x86masmframe.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\absyn.h" />
