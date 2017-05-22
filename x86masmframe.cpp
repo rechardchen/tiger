@@ -43,6 +43,7 @@ namespace tiger {
 		if (!escape)
 			return InReg(temp::newTemp());
 		else
+			return InFrame(StackSize -= TIGER_WORD_SIZE);
 	}
 
 }

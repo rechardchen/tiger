@@ -17,6 +17,7 @@ namespace tiger {
 		//static Frame* Create(const std::vector<bool>&);
 
 	protected:
+		int StackSize = 0;
 		int NArgs = 0;
 	};
 }
