@@ -444,10 +444,7 @@ namespace tiger {
 		{
 			auto lx = static_cast<LetExp*>(n);
 
-			VENV.BeginScope();
-			TENV.BeginScope();
-			FENV.BeginScope();
-
+			NewScope();
 			auto decs = TransDecs(lx->decs), body = TransExp(lx->exps, loopExit);
 			if (decs.second == nullptr || body.second == nullptr) {
 				FENV.EndScope();
@@ -458,9 +455,7 @@ namespace tiger {
 
 			ret.second = body.second;
 			ret.first = Translator->CombineESeq(decs.first, body.first);
-			FENV.EndScope();
-			TENV.EndScope();
-			VENV.EndScope();
+			EndScope();
 		}
 			break;
 
@@ -628,10 +623,7 @@ TRANS_EXP_ERR:
 					entry->resultType = retType;
 					FENV.Enter(fundec->name, entry);
 					//begin level of the func
-					TENV.BeginScope();
-					VENV.BeginScope();
-					FENV.BeginScope();
-
+					NewScope();
 					for (size_t i = 0; i < formalName.size(); ++i) {
 						auto entry = new(C)VarEntry;
 						entry->access = newLevel->Argument(i);
@@ -641,9 +633,7 @@ TRANS_EXP_ERR:
 					}
 					ExpTy expty = TransExp(fundec->body);
 					//make sure endscope is called
-					FENV.EndScope();
-					VENV.EndScope();
-					TENV.EndScope();
+					EndScope();
 					//check return type
 					if (expty.second == nullptr) {
 						FENV.Pop(fundec->name);
@@ -820,7 +810,7 @@ TRANS_TY_ERR:
 		return nullptr;
 	}
 
-	Type* actualTy(Type* ty) {
+	Type* Semant::actualTy(Type* ty) {
 		while (ty->tt == Ty_Name)
 			ty = static_cast<NameType*>(ty)->type;
 		return ty;
@@ -875,6 +865,22 @@ TRANS_TY_ERR:
 		ret.first = assign;
 		ret.second = ty;
 		return ret;
+	}
+
+	void Semant::TransProg(ASTNode prog)
+	{
+		NewScope();
+		if (prog->type != A_DeclareList) { //main func
+			Translator->NewLevel(Translator->CurLevel(),
+				"_main",
+				{});
+
+			TransExp(prog);
+		}
+		else {
+			TransDecs(prog); //declarations
+		}
+		EndScope();
 	}
 
 }

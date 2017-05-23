@@ -29,11 +29,15 @@ namespace tiger {
 
 		ExpTy TransVarDec(VarDec*); //expty.second != null means success
 
+		//entry function
+		void TransProg(ASTNode);
 	protected:
 		//only used where we must have the actual type
 		static Type* actualTy(Type* ty);
 		//type equality validation
 		static bool ValidateTypeCheck(Type* left, Type* right);
+		inline void NewScope() { TENV.BeginScope(); VENV.BeginScope(); FENV.BeginScope(); }
+		inline void EndScope() { TENV.EndScope(); VENV.EndScope(); FENV.EndScope(); }
 
 		VarEnv VENV;
 		FuncEnv FENV;
