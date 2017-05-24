@@ -45,5 +45,4 @@ namespace tiger {
 		else
 			return InFrame(StackSize -= TIGER_WORD_SIZE);
 	}
-
 }

@@ -41,7 +41,4 @@ namespace tiger {
 
 		virtual FAccess AllocLocal(bool escape) = 0;
 	};
-	
-	struct TExp;
-	typedef TExp* FExternalCall(Symbol s, const std::vector<TExp*>&);
 }

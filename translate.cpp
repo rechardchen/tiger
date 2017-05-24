@@ -231,8 +231,8 @@ namespace tiger {
 	Translate::Translate(BumpPtrAllocator& allocator)
 		: C(allocator)
 	{
-		InitLevel = new (C)TrLevel;
-		CurrentLevel = InitLevel;
+		//InitLevel = new (C)TrLevel;
+		//CurrentLevel = InitLevel;
 	}
 
 	TrLevel* Translate::NewLevel(TrLevel* parent, Label name, const std::vector<bool>& formals)
@@ -246,6 +246,7 @@ namespace tiger {
 		frameArgs.insert(frameArgs.begin(), true); //static link always escape
 		level->Frame = FrameCreator(frameArgs);
 
+		CurrentLevel = level;
 		return level;
 	}
 
@@ -259,8 +260,13 @@ namespace tiger {
 
 	TrExp* Translate::CombineStm(TrExp* s1, TrExp* s2)
 	{
-		assert(s1 != nullptr && s2 != nullptr);
-		return new(C)TrNx(new(C)TSeq(s1->unNx(), s2->unNx()), C);
+		assert(s1 != nullptr || s2 != nullptr);
+		if (s1 == nullptr) 
+			return new(C)TrNx(s2->unNx(), C);
+		else if (s2 == nullptr) 
+			return new(C)TrNx(s1->unNx(), C);
+		else
+			return new(C)TrNx(new(C)TSeq(s1->unNx(), s2->unNx()), C);
 	}
 
 	TrExp* Translate::CombineESeq(TrExp* s, TrExp* e)
@@ -390,10 +396,14 @@ namespace tiger {
 					new(C)TMove(new(C)TTemp(regInit), init->unEx()),
 					new(C)TMove(
 						new(C)TTemp(regArr), 
-						ExternelCall("initArray", {
+						new(C)TCall(new(C)TName(ExternalName("initArray")), {
 							new(C)TTemp(regSiz),
 							new(C)TTemp(regInit)
 						})
+						/*ExternelCall("initArray", {
+							new(C)TTemp(regSiz),
+							new(C)TTemp(regInit)
+						})*/
 					)
 				)
 			),
@@ -406,7 +416,8 @@ namespace tiger {
 	{
 		auto regRec = temp::newTemp();
 		TStm* init = new(C)TMove(new(C)TTemp(regRec),
-			ExternelCall("initRec", { new(C)TConst(type->GetMemberNum()*TIGER_WORD_SIZE) }));
+			new(C)TCall(new(C)TName(ExternalName("initRecord")), { new(C)TConst(type->GetMemberNum()*TIGER_WORD_SIZE) }));
+			//ExternelCall("initRecord", { new(C)TConst(type->GetMemberNum()*TIGER_WORD_SIZE) }));
 		for (size_t i = 0; i < fnames.size(); i++) {
 			init = new(C)TSeq(init, new(C)TMove(
 				new(C)TMem(new(C)TBinOp(T_plus, new(C)TTemp(regRec), new(C)TConst(type->GetMemberOffset(fnames[i])*TIGER_WORD_SIZE))),
@@ -450,9 +461,11 @@ namespace tiger {
 			return new(C)TrEx(new(C)TCall(
 				new(C)TName(f),
 				params
-			), C);
+				), C);
 		else
-			return new(C)TrEx(ExternelCall(f, params),C);
+			return new(C)TrEx(new(C)TCall(
+				new(C)TName(ExternalName(f)), params
+				), C);
 	}
 
 	TrExp* Translate::TransAssign(TrExp* target, TrExp* exp) {
@@ -521,9 +534,12 @@ namespace tiger {
 
 	TrExp* Translate::TransStrConcat(TrExp* lhs, TrExp* rhs)
 	{
-		return new(C)TrEx(ExternelCall("concatStr", {
+		return new(C)TrEx(new(C)TCall(new(C)TName(ExternalName("concatStr")), {
+			{lhs->unEx(), rhs->unEx()}
+		}), C);
+		/*return new(C)TrEx(ExternelCall("concatStr", {
 			lhs->unEx(), rhs->unEx()
-		}),C);
+		}),C);*/
 	}
 
 	tiger::TrExp* Translate::TransRelOp(TrRelOp op, TrExp* lhs, TrExp* rhs, bool strOprand) {
@@ -532,7 +548,8 @@ namespace tiger {
 		}
 		else {
 			return new(C)TrRelCx(op, 
-				new(C)TrEx(ExternelCall("compareStr", { lhs->unEx(), rhs->unEx() }),C),
+				/*new(C)TrEx(ExternelCall("compareStr", { lhs->unEx(), rhs->unEx() }),C)*/
+				new(C)TrEx(new(C)TCall(new(C)TName(ExternalName("compareStr")), { lhs->unEx(), rhs->unEx() }),C),
 				new(C)TrEx(new(C)TConst(0),C),C
 			);
 		}

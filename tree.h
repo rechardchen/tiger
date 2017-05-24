@@ -87,7 +87,7 @@ namespace tiger {
 	//JUMP(e, labs): Transfer control to address e
 	struct TJump : public TStm {
 		//TJump(TExp* e, const std::vector<TExp*>& ll) :TStm(T_Jump), exp(e), labels(ll) {}
-		TJump(Label l, const std::vector<Label>& ll);
+		TJump(Label l, const std::vector<Label>& ll) :TStm(T_Jump), t(l), labels(ll) {}
 		//TExp* exp;
 		//std::vector<TExp*> labels;
 		Label t;

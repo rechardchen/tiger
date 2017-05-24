@@ -14,7 +14,7 @@ namespace tiger {
 		, FENV(env::baseFEnv())
 		, TENV(env::baseTEnv())
 	{
-		Translator = new (C) Translate(C);
+		//Translator = new (C) Translate(C);
 	}
 	
 	Semant::ExpTy Semant::TransExp(ASTNode n,Label loopExit)
@@ -44,15 +44,28 @@ namespace tiger {
 		}
 			break;
 
+		case A_SimpleVar:
+		case A_FieldVar:
+		case A_SubscriptVar:
+		{
+			return TransVar(n);
+		}
+			break;
+
 		case A_Array:
 		{
 			auto ax = static_cast<ArrayExp*>(n);
 			auto ty = TENV.Look(ax->type);
 			if (ty) {
+				ty = actualTy(ty);
+				if (ty->tt != Ty_Array) {
+					reportErr("not array type!");
+					goto TRANS_EXP_ERR;
+				}
 				auto expty = TransExp(ax->init); //break can not in array init exp
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
-				if (!ValidateTypeCheck(ty, expty.second)) {
+				if (!ValidateTypeCheck(actualTy(static_cast<ArrayType*>(ty)->arrTy), expty.second)) {
 					reportErr("type mismatch!");
 					goto TRANS_EXP_ERR;
 				}
@@ -67,7 +80,7 @@ namespace tiger {
 				auto sizeExp = expty.first;
 				ret.first = Translator->TransArrayInit(sizeExp, initExp);
 				//so we need to add special validate in ValidateTypeCheck for arrays
-				ret.second = new(C)ArrayType(ty);
+				ret.second = ty;
 			}
 			else {
 				reportErr("type %s not defined", ax->type.c_str());
@@ -95,6 +108,9 @@ namespace tiger {
 					if (fieldTy == nullptr) {
 						reportErr("%s is not a valid field name", efield->name.c_str());
 						goto TRANS_EXP_ERR;
+					}
+					else {
+						fieldTy = actualTy(fieldTy);
 					}
 					ExpTy expty = TransExp(efield->exp);
 					if (expty.second == nullptr)
@@ -466,8 +482,13 @@ namespace tiger {
 			std::vector<TrExp*> exps;
 			for (auto exp : ex->exps) {
 				auto expty = TransExp(exp, loopExit);
-				if (expty.second == nullptr) ty = nullptr;
-				else ty = expty.second;
+				if (expty.second == nullptr) {
+					ty = nullptr;
+					break;
+				}
+				else {
+					ty = expty.second;
+				}
 
 				exps.push_back(expty.first);
 			}
@@ -536,7 +557,7 @@ TRANS_EXP_ERR:
 				auto ty = TENV.Look(typeName);
 				assert(ty->tt == Ty_Name);
 				auto nt = static_cast<NameType*>(ty);
-				auto type = TransTy(tydec);
+				auto type = TransTy(tydec->ty);
 				if (type) {
 					nt->type = type;
 					//check: recursive define and incomplete define
@@ -816,6 +837,20 @@ TRANS_TY_ERR:
 		return ty;
 	}
 
+	bool Semant::ValidateTypeCheck(Type* left, Type* right)
+	{
+		//fast way
+		if (left == right)
+			return true;
+		//special case: array
+		/*if (left && left->tt == Ty_Array && right && right->tt == Ty_Array) {
+			return ValidateTypeCheck(static_cast<ArrayType*>(left)->arrTy,
+				static_cast<ArrayType*>(right)->arrTy);
+		}*/
+
+		return false;
+	}
+
 	Semant::ExpTy Semant::TransVarDec(VarDec* vardec) {
 		//TODO: can not handle following recursive format
 		//var a := recType{ptr=a}
@@ -875,7 +910,11 @@ TRANS_TY_ERR:
 				"_main",
 				{});
 
-			TransExp(prog);
+			auto expty = TransExp(prog);
+			if (expty.second == nullptr)
+				Translator->ExitLevel(nullptr);
+			else
+				Translator->ExitLevel(expty.first);
 		}
 		else {
 			TransDecs(prog); //declarations

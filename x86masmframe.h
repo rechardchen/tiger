@@ -1,12 +1,13 @@
 #pragma once
 #include "frame.h"
+#include <vector>
 
 namespace tiger {
+	struct TExp;
 	class X86MasmFrame : public Frame {
 	public:
 		X86MasmFrame(const std::vector<bool>& escape);
 
-		//virtual FAccess StaticLink() override;
 		virtual FAccess FramePtr() override;
 		virtual FAccess Argument(int i) override;
 		virtual FAccess ReturnAddress() override;
@@ -14,7 +15,6 @@ namespace tiger {
 
 		virtual FAccess AllocLocal(bool escape)override;
 
-		//static Frame* Create(const std::vector<bool>&);
 
 	protected:
 		int StackSize = 0;

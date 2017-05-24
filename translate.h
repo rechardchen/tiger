@@ -54,6 +54,9 @@ namespace tiger {
 	class Translate {
 	public:
 		Translate(BumpPtrAllocator& allocator);
+		//init operations
+		void SetExternalName(const std::function<std::string(std::string)>& nameMangle) { ExternalName = nameMangle; }
+		void SetFrameCreator(const std::function<Frame*(const std::vector<bool>&)>& creator) { FrameCreator = creator; }
 
 		TrLevel* OutmostLevel() { return InitLevel; }
 		TrLevel* NewLevel(TrLevel* parent, Label name, const std::vector<bool>& formals);
@@ -86,8 +89,10 @@ namespace tiger {
 		TrExp* TransBreak(Label);
 		TrExp* TransExplist(const std::vector<TrExp*>& exps);
 		
+
 	private:
-		TrLevel* InitLevel, *CurrentLevel;
+		//curlevel == nullptr means in global scope, built-in scope can not be touched
+		TrLevel* InitLevel = nullptr, *CurrentLevel = nullptr;
 		BumpPtrAllocator& C;
 
 		//TODO: global link labels = module + f/s-index
@@ -95,7 +100,8 @@ namespace tiger {
 		std::vector<std::pair<TStm*, Frame*>> FuncFrags;
 
 		//frame-specific
-		FExternalCall ExternelCall;
+		std::function<std::string(std::string)> ExternalName;
+		//FExternalCall ExternelCall;
 		std::function<Frame*(const std::vector<bool>&)> FrameCreator;
 	};
 }

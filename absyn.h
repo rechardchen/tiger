@@ -38,7 +38,7 @@ namespace tiger
 	struct ArrayExp : public BaseASTNode
 	{
 		ArrayExp() :BaseASTNode(A_Array) {}
-		std::string type;
+		std::string type; //array type , not item type
 		ASTNode size = nullptr, init = nullptr;
 	};
 	struct EField : public BaseASTNode

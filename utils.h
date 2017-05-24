@@ -16,7 +16,7 @@ namespace tiger {
 		vfprintf(stderr, fmt, args);
 		va_end(args);
 		fprintf(stderr, "\n");
-		exit(-1);
+		//exit(-1);
 	}
 
 	inline bool isPowerof2(uint64_t value) {

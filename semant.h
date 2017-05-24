@@ -31,10 +31,16 @@ namespace tiger {
 
 		//entry function
 		void TransProg(ASTNode);
+
+	public:
+		inline void SetTranslate(Translate* translator) {
+			Translator = translator;
+		}
+
 	protected:
 		//only used where we must have the actual type
 		static Type* actualTy(Type* ty);
-		//type equality validation
+		//type equality validation, assume left and right all actual typed
 		static bool ValidateTypeCheck(Type* left, Type* right);
 		inline void NewScope() { TENV.BeginScope(); VENV.BeginScope(); FENV.BeginScope(); }
 		inline void EndScope() { TENV.EndScope(); VENV.EndScope(); FENV.EndScope(); }
