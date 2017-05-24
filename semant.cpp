@@ -579,6 +579,11 @@ TRANS_EXP_ERR:
 						decType = nullptr;
 					}
 				}
+				else {
+					reportErr("type not defined!");
+					TENV.Pop(typeName);
+					decType = nullptr;
+				}
 			}
 		}
 
