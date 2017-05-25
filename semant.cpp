@@ -3,7 +3,10 @@
 #include "translate.h"
 
 //TODO:
-//error recovery policy:1. add position info in reportErr 2.report error like gcc
+//error recovery policy:
+//1. add position info in reportErr (and format msg)
+//2. report error like clang
+// 2.1 do not pop definition, e.g when error in trans function f, do not delete f in name scope.Just stop translate
 namespace tiger {
 
 #define VALID_VAR_TYPE(ty) ((ty)->tt != Ty_Void)
