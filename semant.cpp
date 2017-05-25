@@ -77,7 +77,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("array index must be integer");
+					reportErr("array size must be integer");
 					goto TRANS_EXP_ERR;
 				}
 				auto sizeExp = expty.first;
