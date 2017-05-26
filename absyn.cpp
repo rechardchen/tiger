@@ -61,6 +61,7 @@ namespace tiger
 	{
 	public:
 		virtual antlrcpp::Any visitNilExp(tigerParser::NilExpContext *ctx) override {
+			auto exp = new NilExp;
 			return ASTNode(new NilExp);
 		}
 		virtual antlrcpp::Any visitIntExp(tigerParser::IntExpContext *ctx) override {
@@ -78,6 +79,7 @@ namespace tiger
 			exp->type = ctx->type_id()->getText();
 			exp->size = visit(ctx->exp(0));
 			exp->init = visit(ctx->exp(1));
+			exp->sl = ctx->type_id()->ID()->getSymbol()->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitRecordExp(tigerParser::RecordExpContext *ctx) override {
@@ -91,8 +93,11 @@ namespace tiger
 				auto efield = new EField;
 				efield->name = ids[i]->getText();
 				efield->exp = visit(values[i]);
+				efield->sl = ids[i]->getSymbol()->getLine();
 				exp->fields.push_back(ASTNode(efield));
 			}
+			exp->sl = ctx->type_id()->ID()->getSymbol()->getLine();
+
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitNewExp(tigerParser::NewExpContext *ctx) override {
@@ -108,6 +113,7 @@ namespace tiger
 			exp->name = ctx->ID()->getText();
 			auto params = ctx->exp();
 			for (auto e : params) exp->params.push_back(visit(e));
+			exp->sl = ctx->ID()->getSymbol()->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitMethodCallExp(tigerParser::MethodCallExpContext *ctx) override {
@@ -122,6 +128,7 @@ namespace tiger
 			auto exp = new UnaryOpExp;
 			exp->op = UnaryOpExp::OP_NEG;
 			exp->exp = visit(ctx->exp());
+			exp->sl = ctx->getStart()->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitMulDivExp(tigerParser::MulDivExpContext *ctx) override {
@@ -130,6 +137,7 @@ namespace tiger
 			exp->op = opTxt == "*" ? BinOpExp::OP_MUL : BinOpExp::OP_DIV;
 			exp->lhs = visit(ctx->exp(0));
 			exp->rhs = visit(ctx->exp(1));
+			exp->sl = ctx->op->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitAddSubExp(tigerParser::AddSubExpContext *ctx) override {
@@ -138,6 +146,7 @@ namespace tiger
 			exp->op = opTxt == "+" ? BinOpExp::OP_ADD : BinOpExp::OP_SUB;
 			exp->lhs = visit(ctx->exp(0));
 			exp->rhs = visit(ctx->exp(1));
+			exp->sl = ctx->op->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitRelOpExp(tigerParser::RelOpExpContext *ctx) override {
@@ -157,6 +166,7 @@ namespace tiger
 				exp->op = BinOpExp::OP_LT;
 			exp->lhs = visit(ctx->exp(0));
 			exp->rhs = visit(ctx->exp(1));
+			exp->sl = ctx->op->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitLogicExp(tigerParser::LogicExpContext *ctx) override {
@@ -165,6 +175,7 @@ namespace tiger
 			exp->op = opTxt == "&" ? BinOpExp::OP_AND : BinOpExp::OP_OR;
 			exp->lhs = visit(ctx->exp(0));
 			exp->rhs = visit(ctx->exp(1));
+			exp->sl = ctx->op->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitExplistExp(tigerParser::ExplistExpContext *ctx) override {
@@ -174,6 +185,7 @@ namespace tiger
 			auto exp = new AssignExp;
 			exp->var = visit(ctx->lvalue());
 			exp->exp = visit(ctx->exp());
+			exp->sl = ctx->lvalue()->getStart()->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitIfExp(tigerParser::IfExpContext *ctx) override {
@@ -183,12 +195,14 @@ namespace tiger
 			auto elsee = ctx->exp(2);
 			if (elsee)
 				exp->elsee = visit(elsee);
+			exp->sl = ctx->getStart()->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitWhileExp(tigerParser::WhileExpContext *ctx) override {
 			auto exp = new WhileExp;
 			exp->test = visit(ctx->exp(0));
 			exp->body = visit(ctx->exp(1));
+			exp->sl = ctx->getStart()->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitForExp(tigerParser::ForExpContext *ctx) override {
@@ -197,10 +211,13 @@ namespace tiger
 			exp->lo = visit(ctx->exp(0));
 			exp->hi = visit(ctx->exp(1));
 			exp->body = visit(ctx->exp(2));
+			exp->sl = ctx->getStart()->getLine();
 			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitBreakExp(tigerParser::BreakExpContext *ctx) override {
-			return ASTNode(new BreakExp);
+			auto exp = new BreakExp;
+			exp->sl = ctx->getStart()->getLine();
+			return ASTNode(exp);
 		}
 		virtual antlrcpp::Any visitLetExp(tigerParser::LetExpContext *ctx) override {
 			auto exp = new LetExp;
@@ -211,18 +228,21 @@ namespace tiger
 		virtual antlrcpp::Any visitSimpleVar(tigerParser::SimpleVarContext *ctx) override {
 			auto var = new SimpleVar;
 			var->name = ctx->ID()->getText();
+			var->sl = ctx->ID()->getSymbol()->getLine();
 			return ASTNode(var);
 		}
 		virtual antlrcpp::Any visitFieldVar(tigerParser::FieldVarContext *ctx) override {
 			auto var = new FieldVar;
 			var->var = visit(ctx->lvalue());
 			var->field = ctx->ID()->getText();
+			var->sl = ctx->dot->getLine();
 			return ASTNode(var);
 		}
 		virtual antlrcpp::Any visitSubScriptVar(tigerParser::SubScriptVarContext *ctx) override {
 			auto var = new SubscriptVar;
 			var->var = visit(ctx->lvalue());
 			var->exp = visit(ctx->exp());
+			var->sl = ctx->lbt->getLine();
 			return ASTNode(var);
 		}
 		virtual antlrcpp::Any visitExprList(tigerParser::ExprListContext *ctx) override {
@@ -243,6 +263,7 @@ namespace tiger
 			auto typedec = new TypeDec;
 			typedec->name = ctx->ID()->getText();
 			typedec->ty = visit(ctx->ty());
+			typedec->sl = ctx->ID()->getSymbol()->getLine();
 			return ASTNode(typedec);
 		}
 		virtual antlrcpp::Any visitClassDec(tigerParser::ClassDecContext *ctx) override {
@@ -267,6 +288,7 @@ namespace tiger
 			auto rtype = ctx->type_id();
 			fundec->rtype = rtype ? rtype->getText() : "";
 			fundec->body = visit(ctx->exp());
+			fundec->sl = ctx->ID()->getSymbol()->getLine();
 			return ASTNode(fundec);
 		}
 		virtual antlrcpp::Any visitImportDec(tigerParser::ImportDecContext *ctx) override {
@@ -277,6 +299,7 @@ namespace tiger
 		virtual antlrcpp::Any visitNameTy(tigerParser::NameTyContext *ctx) override {
 			auto nameTy = new NameTy;
 			nameTy->name = ctx->type_id()->getText();
+			nameTy->sl = ctx->type_id()->ID()->getSymbol()->getLine();
 			return ASTNode(nameTy);
 		}
 		virtual antlrcpp::Any visitRecordTy(tigerParser::RecordTyContext *ctx) override {
@@ -284,11 +307,13 @@ namespace tiger
 			ASTNode tmp = visit(ctx->tyfields());
 			assert(tmp->type == A_TyFields);
 			recordTy->tyfields = static_cast<TyFields*>(tmp);
+			recordTy->sl = ctx->tyfields()->getStart()->getLine();
 			return ASTNode(recordTy);
 		}
 		virtual antlrcpp::Any visitArrayTy(tigerParser::ArrayTyContext *ctx) override {
 			auto arrayTy = new ArrayTy;
 			arrayTy->type = ctx->type_id()->getText();
+			arrayTy->sl = ctx->type_id()->ID()->getSymbol()->getLine();
 			return ASTNode(arrayTy);
 		}
 		virtual antlrcpp::Any visitClassTy(tigerParser::ClassTyContext *ctx) override {
@@ -307,6 +332,7 @@ namespace tiger
 				auto field = new Field;
 				field->name = ids[i]->getText();
 				field->type = typeids[i]->getText();
+				field->sl = ids[i]->getSymbol()->getLine();
 				tyfields->fields.push_back(field);
 			}
 			return ASTNode(tyfields);
@@ -330,6 +356,7 @@ namespace tiger
 			auto _type = ctx->type_id();
 			var->type = _type ? _type->getText() : "";
 			var->init = visit(ctx->exp());
+			var->sl = ctx->ID()->getSymbol()->getLine();
 			return ASTNode(var);
 		}
 	};

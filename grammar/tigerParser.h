@@ -294,6 +294,7 @@ public:
   public:
     FieldVarContext(LvalueContext *ctx);
 
+    antlr4::Token *dot = nullptr;
     LvalueContext *lvalue();
     antlr4::tree::TerminalNode *ID();
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;
@@ -303,6 +304,7 @@ public:
   public:
     SubScriptVarContext(LvalueContext *ctx);
 
+    antlr4::Token *lbt = nullptr;
     LvalueContext *lvalue();
     ExpContext *exp();
     virtual antlrcpp::Any accept(antlr4::tree::ParseTreeVisitor *visitor) override;

@@ -10,13 +10,8 @@ namespace tiger {
 	//
 	//void reportError(const char* translation_unit, const char* msg, int line, int col) {
 	//TODO: do not call exit
-	inline void reportErr(const char* fmt, ...) {
-		va_list args;
-		va_start(args, fmt);
+	inline void reportErr(const char* fmt, va_list args) {
 		vfprintf(stderr, fmt, args);
-		va_end(args);
-		fprintf(stderr, "\n");
-		//exit(-1);
 	}
 
 	inline bool isPowerof2(uint64_t value) {

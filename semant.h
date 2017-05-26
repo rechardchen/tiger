@@ -42,6 +42,8 @@ namespace tiger {
 		static Type* actualTy(Type* ty);
 		//type equality validation, assume left and right all actual typed
 		static bool ValidateTypeCheck(Type* left, Type* right);
+		//error-report
+		void reportErr(int sl, const char* fmt, ...);
 		inline void NewScope() { TENV.BeginScope(); VENV.BeginScope(); FENV.BeginScope(); }
 		inline void EndScope() { TENV.EndScope(); VENV.EndScope(); FENV.EndScope(); }
 

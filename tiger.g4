@@ -39,8 +39,8 @@ exp
 // Can not handle lvalue such as F(x,y), todo add this
 lvalue
 	: ID 												#SimpleVar
-	| lvalue '.' ID 									#FieldVar
-	| lvalue '[' exp ']' 								#SubScriptVar
+	| lvalue dot='.' ID 									#FieldVar
+	| lvalue lbt='[' exp ']' 								#SubScriptVar
 	;
 
 exps: (exp (';' exp)*)? #ExprList; 								

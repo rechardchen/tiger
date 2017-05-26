@@ -62,14 +62,14 @@ namespace tiger {
 			if (ty) {
 				ty = actualTy(ty);
 				if (ty->tt != Ty_Array) {
-					reportErr("not array type!");
+					reportErr(ax->sl, "not array type!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto expty = TransExp(ax->init); //break can not in array init exp
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (!ValidateTypeCheck(actualTy(static_cast<ArrayType*>(ty)->arrTy), expty.second)) {
-					reportErr("type mismatch!");
+					reportErr(ax->sl, "array item type mismatch!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto initExp = expty.first;
@@ -77,7 +77,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("array size must be integer");
+					reportErr(ax->sl, "array size must be integer!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto sizeExp = expty.first;
@@ -86,7 +86,7 @@ namespace tiger {
 				ret.second = ty;
 			}
 			else {
-				reportErr("type %s not defined", ax->type.c_str());
+				reportErr(ax->sl, "type %s not defined!\n", ax->type.c_str());
 			}
 		}
 			break;
@@ -98,7 +98,7 @@ namespace tiger {
 			if (ty) {
 				ty = actualTy(ty);
 				if (ty->tt != Ty_Record) {
-					reportErr("%s is not a record type", rx->type.c_str());
+					reportErr(rx->sl, "%s is not a record type!\n", rx->type.c_str());
 					goto TRANS_EXP_ERR;
 				}
 
@@ -109,7 +109,7 @@ namespace tiger {
 					auto efield = static_cast<EField*>(field);
 					auto fieldTy = rt->GetMemberTy(efield->name);
 					if (fieldTy == nullptr) {
-						reportErr("%s is not a valid field name", efield->name.c_str());
+						reportErr(efield->sl, "%s is not a valid field name!\n", efield->name.c_str());
 						goto TRANS_EXP_ERR;
 					}
 					else {
@@ -120,7 +120,7 @@ namespace tiger {
 						goto TRANS_EXP_ERR;
 
 					if (!ValidateTypeCheck(fieldTy, expty.second)) {
-						reportErr("field %s type mismatch!", efield->name.c_str());
+						reportErr(efield->sl, "field %s type mismatch!\n", efield->name.c_str());
 						goto TRANS_EXP_ERR;
 					}
 					fnames.push_back(efield->name);
@@ -130,7 +130,7 @@ namespace tiger {
 				ret.first = Translator->TransRecordInit(rt, fnames, fexps);
 			}
 			else {
-				reportErr("type %s not exists", rx->type.c_str());
+				reportErr(rx->sl, "type %s not exists!\n", rx->type.c_str());
 			}
 		}
 			break;
@@ -141,12 +141,12 @@ namespace tiger {
 
 			auto entry = FENV.Look(cx->name);
 			if (entry == nullptr) {
-				reportErr("func %s is not defined", cx->name.c_str());
+				reportErr(cx->sl, "func %s is not defined!\n", cx->name.c_str());
 				goto TRANS_EXP_ERR;
 			}
 			//check params
 			if (cx->params.size() != entry->paramTypes.size()) {
-				reportErr("number of parameter not match!");
+				reportErr(cx->sl, "number of parameter not match!\n");
 				goto TRANS_EXP_ERR;
 			}
 			std::vector<ASTNode> params(cx->params.begin(), cx->params.end());
@@ -156,7 +156,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (!ValidateTypeCheck(entry->paramTypes[i], expty.second)) {
-					reportErr("type mismatch!");
+					reportErr(params[i]->sl, "arg type mismatch!\n");
 					goto TRANS_EXP_ERR;
 				}
 				exps.push_back(expty.first);
@@ -173,7 +173,7 @@ namespace tiger {
 			
 			if (expty.second) {
 				if (expty.second != IntType()) {
-					reportErr("not implemented: unary op only support integers");
+					reportErr(ux->sl, "not implemented: unary op only support integers!\n");
 					goto TRANS_EXP_ERR;
 				}
 				ret.second = IntType();
@@ -192,7 +192,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("invalid oprand type, integer expected!");
+					reportErr(bx->lhs->sl, "invalid oprand type, integer expected!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto lhs = expty.first;
@@ -201,7 +201,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("invalid oprand type, integer expected!");
+					reportErr(bx->rhs->sl, "invalid oprand type, integer expected!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto rhs = expty.first;
@@ -217,7 +217,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("invalid oprand type, integer expected!");
+					reportErr(bx->lhs->sl, "invalid oprand type, integer expected!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto lhs = expty.first;
@@ -225,13 +225,13 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("invalid oprand type, integer expected!");
+					reportErr(bx->rhs->sl, "invalid oprand type, integer expected!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto rhs = expty.first;
 				auto exp = Translator->TransBinaryDiv(lhs, rhs);
 				if (exp == nullptr) {
-					reportErr("zero division error!");
+					reportErr(bx->sl, "zero division error!\n");
 					goto TRANS_EXP_ERR;
 				}
 				ret.second = IntType();
@@ -262,7 +262,7 @@ namespace tiger {
 					ret.first = Translator->TransStrConcat(lexp, rexp);
 				}
 				else {
-					reportErr("invalid oprand type, only integer and string addition is permitted!");
+					reportErr(bx->sl, "invalid oprand type, only integer and string addition is permitted!\n");
 					goto TRANS_EXP_ERR;
 				}
 			}
@@ -275,7 +275,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("invalid oprand type, integer expected!");
+					reportErr(bx->lhs->sl, "invalid oprand type, integer expected!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto lhs = expty.first;
@@ -283,7 +283,7 @@ namespace tiger {
 				if (expty.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (expty.second != IntType()) {
-					reportErr("invalid oprand type, integer expected!");
+					reportErr(bx->rhs->sl, "invalid oprand type, integer expected!\n");
 					goto TRANS_EXP_ERR;
 				}
 				auto rhs = expty.first;
@@ -321,7 +321,7 @@ namespace tiger {
 					ret.first = Translator->TransRelOp(op, left.first, right.first, true);
 				}
 				else {
-					reportErr("invalid rel oprand type!");
+					reportErr(bx->sl, "invalid rel oprand type!\n");
 					goto TRANS_EXP_ERR;
 				}
 			}
@@ -334,11 +334,11 @@ namespace tiger {
 				if (left.second == nullptr || right.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (!VALID_VAR_TYPE(left.second)) {
-					reportErr("invalid logic oprand type");
+					reportErr(bx->lhs->sl, "invalid logic oprand type!\n");
 					goto TRANS_EXP_ERR;
 				}
 				if (!VALID_VAR_TYPE(right.second)) {
-					reportErr("invalid logic oprand type");
+					reportErr(bx->rhs->sl, "invalid logic oprand type!\n");
 					goto TRANS_EXP_ERR;
 				}
 
@@ -363,14 +363,14 @@ namespace tiger {
 			if (test.second == nullptr)
 				goto TRANS_EXP_ERR;
 			if (!VALID_VAR_TYPE(test.second)) {
-				reportErr("test exp type incorrect!");
+				reportErr(ix->sl, "test exp type incorrect!\n");
 				goto TRANS_EXP_ERR;
 			}
 			if (!hasElse) {
 				if (then.second == nullptr)
 					goto TRANS_EXP_ERR;
 				if (then.second != VoidType()) {
-					reportErr("if without else must have type void!");
+					reportErr(ix->sl, "if without else must have type void!\n");
 					goto TRANS_EXP_ERR;
 				}
 
@@ -382,7 +382,7 @@ namespace tiger {
 					goto TRANS_EXP_ERR;
 
 				if (!ValidateTypeCheck(then.second, elsee.second)) {
-					reportErr("then and else type mismatch!");
+					reportErr(ix->sl, "then and else type mismatch!\n");
 					goto TRANS_EXP_ERR;
 				}
 
@@ -401,7 +401,7 @@ namespace tiger {
 			if (test.second == nullptr || body.second == nullptr)
 				goto TRANS_EXP_ERR;
 			if (!VALID_VAR_TYPE(test.second)) {
-				reportErr("test oprand type invalid");
+				reportErr(wx->sl, "test oprand type invalid!\n");
 				goto TRANS_EXP_ERR;
 			}
 
@@ -419,9 +419,9 @@ namespace tiger {
 				goto TRANS_EXP_ERR;
 			if (low.second != IntType() || high.second != IntType()) {
 				if (low.second != IntType())
-					reportErr("invalid oprand type!");
+					reportErr(fx->lo->sl, "invalid oprand type!\n");
 				if (high.second != IntType())
-					reportErr("invalid oprand type!");
+					reportErr(fx->hi->sl, "invalid oprand type!\n");
 				goto TRANS_EXP_ERR;
 			}
 			VENV.BeginScope();
@@ -449,8 +449,9 @@ namespace tiger {
 		//so we dont pass loopexit into transExp(exp)
 		case A_Break:
 		{
+			auto bx = static_cast<BreakExp*>(n);
 			if (!loopExit) {
-				reportErr("break exp not in a loop!");
+				reportErr(bx->sl, "break exp not in a loop!\n");
 				goto TRANS_EXP_ERR;
 			}
 
@@ -511,7 +512,7 @@ namespace tiger {
 				goto TRANS_EXP_ERR;
 			}
 			if (!ValidateTypeCheck(var.second, exp.second)) {
-				reportErr("type mismatch!");
+				reportErr(ax->sl, "type mismatch!\n");
 				goto TRANS_EXP_ERR;
 			}
 			ret.second = VoidType();
@@ -568,7 +569,7 @@ TRANS_EXP_ERR:
 					while (realTy != nt && realTy->tt == Ty_Name) {
 						auto realNT = static_cast<NameType*>(realTy);
 						if (realNT->type == nullptr) {
-							reportErr("type %s has an incomplete definition!", tydec->name.c_str());
+							reportErr(tydec->sl, "type %s has an incomplete definition!\n", tydec->name.c_str());
 							TENV.Pop(typeName);
 							decType = nullptr;
 							break;
@@ -577,13 +578,13 @@ TRANS_EXP_ERR:
 							realTy = realNT->type;
 					}
 					if (realTy == nt) {
-						reportErr("type %s has a recursive definition!", tydec->name.c_str());
+						reportErr(tydec->sl, "type %s has a recursive definition!\n", tydec->name.c_str());
 						TENV.Pop(typeName);
 						decType = nullptr;
 					}
 				}
 				else {
-					reportErr("type not defined!");
+					//reportErr(tydec->sl, "type not defined!\n");
 					TENV.Pop(typeName);
 					decType = nullptr;
 				}
@@ -612,7 +613,7 @@ TRANS_EXP_ERR:
 				if (!fundec->rtype.empty()) {
 					Type* rtype = TENV.Look(fundec->rtype);
 					if (!rtype) {
-						reportErr("%s is not a valid return type!", fundec->rtype.c_str());
+						reportErr(fundec->sl, "%s is not a valid return type!\n", fundec->rtype.c_str());
 						retType = nullptr;
 					}
 					else {
@@ -627,7 +628,7 @@ TRANS_EXP_ERR:
 				for (auto para : fundec->params->fields) {
 					Type* ty = TENV.Look(para->type);
 					if (!ty) {
-						reportErr("param %s has invalid type %s", para->name.c_str(),
+						reportErr(para->sl, "param %s has invalid type %s\n", para->name.c_str(),
 							para->type.c_str());
 						validParam = false;
 						break;
@@ -665,13 +666,13 @@ TRANS_EXP_ERR:
 					EndScope();
 					//check return type
 					if (expty.second == nullptr) {
-						FENV.Pop(fundec->name);
+						//FENV.Pop(fundec->name);
 						Translator->ExitLevel(nullptr);
 					}
 					else {
 						if (!ValidateTypeCheck(retType, expty.second)) {
-							reportErr("return type mismatch!");
-							FENV.Pop(fundec->name);
+							reportErr(fundec->sl, "return type mismatch!\n");
+							//FENV.Pop(fundec->name);
 							Translator->ExitLevel(nullptr);
 							decType = nullptr;
 						}
@@ -699,7 +700,7 @@ TRANS_EXP_ERR:
 			auto sv = static_cast<SimpleVar*>(n);
 			auto entry = VENV.Look(sv->name);
 			if (!entry) {
-				reportErr("undefined variable %s", sv->name.c_str());
+				reportErr(sv->sl, "undefined variable %s!\n", sv->name.c_str());
 			}
 			else {
 				ret.second = entry->type;
@@ -728,11 +729,11 @@ TRANS_EXP_ERR:
 						);
 					}
 					else {
-						reportErr("%s is not a valid field name", fv->field.c_str());
+						reportErr(fv->sl, "%s is not a valid field name!\n", fv->field.c_str());
 					}
 				}
 				else {
-					reportErr("need a record type");
+					reportErr(fv->sl, "need to be a record type!\n");
 				}
 			}
 		}
@@ -745,14 +746,14 @@ TRANS_EXP_ERR:
 			auto ty = expty.second;
 			if (ty) {
 				if (ty->tt != Ty_Array) {
-					reportErr("must be array type");
+					reportErr(sv->sl, "need to be array type!\n");
 				}
 				else {
 					auto itemTy = actualTy(static_cast<ArrayType*>(ty)->arrTy);
 					auto varExp = expty.first;
 					expty = TransExp(sv->exp);
 					if (expty.second != IntType()) {
-						reportErr("array index must be integer");
+						reportErr(sv->sl, "array index must be integer!\n");
 					}
 					else {
 						ret.first = Translator->TransSubscriptVar(varExp, expty.first);
@@ -766,7 +767,7 @@ TRANS_EXP_ERR:
 
 		default: 
 		{
-			reportErr("need an l-value");
+			//reportErr("need an l-value");
 			assert(0);
 		}
 			break;
@@ -783,7 +784,7 @@ TRANS_EXP_ERR:
 			NameTy* nt = static_cast<NameTy*>(n);
 			Type* ty = TENV.Look(nt->name);
 			if (ty == nullptr) {
-				reportErr("type %s not defined!", nt->name.c_str());
+				reportErr(nt->sl, "type %s not defined!\n", nt->name.c_str());
 				goto TRANS_TY_ERR;
 			}
 			return ty;
@@ -799,14 +800,14 @@ TRANS_EXP_ERR:
 				tempField.first = field->name;
 				Type* ty = TENV.Look(field->type);
 				if (ty == nullptr) {
-					reportErr("type %s not defined!", field->type.c_str());
+					reportErr(rt->sl, "type %s not defined!\n", field->type.c_str());
 					goto TRANS_TY_ERR;
 				}
 				tempField.second = ty;
 
 				for (auto f : fieldVec) {
 					if (f.first == tempField.first) {
-						reportErr("repeat field definition %s", tempField.first.Name());
+						reportErr(field->sl, "repeated field definition %s\n", tempField.first.Name());
 						goto TRANS_TY_ERR;
 					}
 				}
@@ -823,7 +824,7 @@ TRANS_EXP_ERR:
 			Type* ty = TENV.Look(at->type);
 			if (ty == nullptr)
 			{
-				reportErr("type %s not defined!", at->type.c_str());
+				reportErr(at->sl, "type %s not defined!\n", at->type.c_str());
 				goto TRANS_TY_ERR;
 			}
 			return new (C) ArrayType(ty);
@@ -859,6 +860,15 @@ TRANS_TY_ERR:
 		return false;
 	}
 
+	void Semant::reportErr(int sl, const char* fmt, ...)
+	{
+		fprintf(stderr, "(%d): ", sl);
+		va_list args;
+		va_start(args, fmt);
+		tiger::reportErr(fmt, args);
+		va_end(args);
+	}
+
 	Semant::ExpTy Semant::TransVarDec(VarDec* vardec) {
 		//TODO: can not handle following recursive format
 		//var a := recType{ptr=a}
@@ -869,7 +879,7 @@ TRANS_TY_ERR:
 		if (!vardec->type.empty()) { //if var type not specified, need type induction
 			ty = TENV.Look(vardec->type);
 			if (ty == nullptr) {
-				reportErr("type %s not exists!", vardec->type.c_str());
+				reportErr(vardec->sl, "type %s not exists!\n", vardec->type.c_str());
 				return ret;
 			}
 			else {
@@ -882,7 +892,7 @@ TRANS_TY_ERR:
 			return ret;
 
 		if (!VALID_VAR_TYPE(expty.second)) {
-			reportErr("cannot assign void to variable %s", vardec->name.c_str());
+			reportErr(vardec->sl, "cannot assign void to variable %s!\n", vardec->name.c_str());
 			return ret;
 		}
 
@@ -890,7 +900,7 @@ TRANS_TY_ERR:
 			ty = expty.second;
 
 		if (!ValidateTypeCheck(ty, expty.second)) {
-			reportErr("type mismatch!");
+			reportErr(vardec->sl, "type mismatch!\n");
 			return ret;
 		}
 

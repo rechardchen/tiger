@@ -22,6 +22,7 @@ namespace tiger
 	{
 		BaseASTNode(int _type=A_Invalid) :type(_type) {}
 		const int type;
+		int sl = 0; //source line, error report only like VC
 	};
 	struct NilExp : public BaseASTNode { NilExp() :BaseASTNode(A_Nil) {} };
 	struct StringExp : public BaseASTNode 

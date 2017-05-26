@@ -1092,7 +1092,7 @@ tigerParser::LvalueContext* tigerParser::lvalue(int precedence) {
 
           if (!(precpred(_ctx, 2))) throw FailedPredicateException(this, "precpred(_ctx, 2)");
           setState(149);
-          match(tigerParser::T__11);
+          dynamic_cast<FieldVarContext *>(_localctx)->dot = match(tigerParser::T__11);
           setState(150);
           match(tigerParser::ID);
           break;
@@ -1106,7 +1106,7 @@ tigerParser::LvalueContext* tigerParser::lvalue(int precedence) {
 
           if (!(precpred(_ctx, 1))) throw FailedPredicateException(this, "precpred(_ctx, 1)");
           setState(152);
-          match(tigerParser::T__1);
+          dynamic_cast<SubScriptVarContext *>(_localctx)->lbt = match(tigerParser::T__1);
           setState(153);
           exp(0);
           setState(154);

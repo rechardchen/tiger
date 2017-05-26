@@ -126,6 +126,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\grammar\antlr4-runtime\src\</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4291</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
